@@ -242,7 +242,7 @@ const CH=[
   {name:'Austin Reaves',look:'reaves',team:'Lakers',number:'15',col:'#e0a458',skin:'#ecc4a0',skin2:'#d2a781',spd:180,jump:545,zone:1.1,reach:33,deep:1.1,fin:1.15,dunk:.35,stl:.75,dcd:1.2,blkW:.22,sec:.2,
     tk:{name:'ICE IN HIS VEINS',desc:'cold in the clutch, strong finisher, shoots through contests',deep:1.2,fin:1.2,cont:.5,mid:1.2,dcd:.7},tkm:{two:1.2,three:1.1,green:1.2},
     tag:'Guard \u00b7 the heady scorer',up:'Smart finisher through contact, solid shooter, good hands',down:'Rarely dunks, not a shot blocker'},
-  {name:'Shai Gilgeous-Alexander',look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
+  {name:'Shai',look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
     tk:{name:'MVP MODE',desc:'unstoppable drives, deadly mid-range, steals, fast dash',spd:1.06,mid:1.3,fin:1.2,stl:.15,dcd:.5,cont:.6},tkm:{two:1.3,stl:1.2,green:1.2},
     tag:'Guard \u00b7 the slasher',up:'Elite mid-range and finishing, strong hands, hard to stop',down:'Not a dunker, average from three'},
   {name:'Chet Holmgren',look:'chet',team:'Thunder',number:'7',col:'#ff6a3d',skin:'#a87650',skin2:'#8c6040',spd:164,jump:585,zone:1.1,reach:54,deep:1.15,fin:1.2,dunk:1.1,stl:.6,dcd:1.4,blkW:.5,sec:-.2,
@@ -287,6 +287,18 @@ function sfx(k){
     o.frequency.setValueAtTime(f[0],t);o.frequency.exponentialRampToValueAtTime(f[1],t+.12);
     g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);
     o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.17);
+  }catch(e){}
+}
+/* referee whistle: a short two-tone shrill tweet */
+function sfxWhistle(){
+  if(muted)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type='sine';o.frequency.setValueAtTime(2700,t);o.frequency.linearRampToValueAtTime(3150,t+.14);o.frequency.linearRampToValueAtTime(2900,t+.3);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.24,t+.02);g.gain.setValueAtTime(.24,t+.28);g.gain.linearRampToValueAtTime(0,t+.36);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.38);
   }catch(e){}
 }
 function sfxGreen(){
@@ -364,6 +376,9 @@ const pick=list=>{let t=0;for(const x of list)t+=x[1];let r=Math.random()*t;for(
    lean tips the body backward, sx squashes/flips it for spins, dx/dy shift it. rel = seconds before the ball is let go. */
 const ANIMS={
   swipe:{d:.22,pose:s=>({a1:-.1+.4*sn(PI*s)})},
+  /* the shove uses the off hand; the dribbling hand (a1) stays down */
+  shove:{d:.35,pose:s=>({a1:-.45,a2:.04+.1*sn(PI*s),lean:-.1*sn(PI*s)})},
+  dribble:{d:1,pose:s=>({a1:-.45,a2:.5,lean:-.05})},
   fake:{d:.34,pose:s=>{const k=sn(PI*s);return{a1:-.5+1.9*k,a2:.2,dy:-5*k}}},
   spin:{d:.32,pose:s=>({sx:Math.cos(2*PI*s)})},
   crossover:{d:.35,pose:s=>({a1:-.9+.35*sn(4*PI*s),dy:3*sn(PI*s),lean:-.12*sn(PI*s)})},
@@ -433,6 +448,13 @@ function getPose(p){
   if(d)return DUNKS[d.style].pose(Math.min(1,d.t/d.dur));
   if(p.hang>0){const k=p.hang*14;return{a1:.9,a2:.9,legs:[-4+sn(k)*5,-10,4+Math.cos(k)*5,-6]}}
   if(p.anim){const sp=ANIMS[p.anim.n];if(sp)return sp.pose(Math.min(1,p.anim.t/p.anim.d))}
+  if(p.dash>0){
+    /* running stride: forward dash leans in with the ball dribbled out front, backward dash leans back and gives ground */
+    const fwd=p.dashDir===p.face,k=Math.sin(p.run*2);
+    /* the arms stay close: the dribbling hand drops down, the other hangs by the hip */
+    if(fwd)return{lean:-.3,dy:-2*Math.abs(k),legs:[12+6*k,-16,-10-6*k,-6],a1:-.45,a2:-.1};
+    return{lean:.22,dy:-2*Math.abs(k),legs:[6+4*k,-16,-6-4*k,-6],a1:.3,a2:-.2};
+  }
   return null;
 }
 function announce(p,name,force){
@@ -462,6 +484,8 @@ function startTakeover(p){
 function shotMiss(s){
   if(!s||s.scored||s.mdone||s.dunk)return;
   s.mdone=true;st.missBy=s.by;tkGain(s.by,s.air?'air':'miss');
+  if(s.foul&&!s.ft){st.ftPending={p:s.by,n:s.pts===3?3:2};st.phase='goal';st.pt=1.2}
+  if(s.ft&&st.ft){st.ft.left--;if(st.ft.left>0){st.phase='goal';st.pt=1}else st.ft=null}
 }
 function newPlayer(idx,ch){
   return {idx,atk:idx===0?1:0,ad:idx===0?1:-1,ch,x:0,y:FLOOR,vx:0,vy:0,face:idx===0?1:-1,
@@ -542,30 +566,35 @@ function startMatch(chIdx,ch2,cb,two,lvl){
 /* ---------- players ---------- */
 function stepPlayer(p,o,inp,dt,act){
   p.dashCd=Math.max(0,p.dashCd-dt);p.dash=Math.max(0,p.dash-dt);
-  p.stun=Math.max(0,p.stun-dt);p.flash=Math.max(0,p.flash-dt);
+  p.stun=Math.max(0,p.stun-dt);p.flash=Math.max(0,p.flash-dt);p.nobar=Math.max(0,(p.nobar||0)-dt);
   p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);p.fakeT=Math.max(0,p.fakeT-dt);p.fakeCd=Math.max(0,p.fakeCd-dt);
   if(p.pend)p.pend.t-=dt;
   if(p.anim){p.anim.t+=dt;if(p.anim.t>=p.anim.d)p.anim=null}
   if(p.dunking){stepDunk(p,o,dt);return}
   if(p.hang>0){p.hang=Math.max(0,p.hang-dt);p.vx=0;p.vy=0;return}
-  const can=act&&p.stun<=0;
+  const can=act&&p.stun<=0&&!(st.ftWait>0)&&!(st.ft&&p!==st.ft.p);
+  /* during free throws nobody can move, dash, fake, steal or use a move; the shooter can still jump into his shot */
+  const ftLock=!!st.ft;
   const airBefore=p.y<FLOOR;
   const pressedJ=!!inp.jump&&!p.jp,releasedJ=!inp.jump&&p.jp;
   p.jp=!!inp.jump;
-  if(inp.dash){inp.dash=0;if(can&&!airBefore&&p.dashCd<=0)startDash(p,o,inp)}
-  if(inp.fake){inp.fake=0;if(can&&p.has&&!airBefore&&!p.meter&&p.fakeCd<=0)startFake(p)}
-  if(inp.sup){inp.sup=0;if(can&&p.to>=1&&!p.tkOn)startTakeover(p)}
-  if(inp.steal){inp.steal=0;if(can&&p.stealCd<=0)trySteal(p,o)}
-  let dir=can?(inp.r-inp.l):0;
+  if(inp.dash){inp.dash=0;if(can&&!ftLock&&!airBefore&&p.dashCd<=0)startDash(p,o,inp)}
+  /* a pump fake needs no move key held: it can be done while slowing down, never on a straight run. It stops the player. */
+  if(inp.fake){inp.fake=0;if(can&&!ftLock&&p.has&&!airBefore&&!p.meter&&p.fakeCd<=0&&!inp.l&&!inp.r)startFake(p)}
+  /* the takeover button does nothing in the air */
+  if(inp.sup){inp.sup=0;if(can&&!ftLock&&p.to>=1&&!p.tkOn)startTakeover(p);else if(can&&!ftLock&&!p.tkOn)p.nobar=.25}
+  if(inp.steal){inp.steal=0;if(can&&!ftLock&&p.stealCd<=0)trySteal(p,o)}
+  let dir=(can&&!ftLock)?(inp.r-inp.l):0;
   if(p.dash>0)dir=p.dashDir;
   const sp=p.ch.spd*T(p,'spd',1)*(p.dash>0?2.3:1);
   p.vx+=(dir*sp-p.vx)*Math.min(1,dt*(airBefore?4:9));
   if(p.has&&p.dash>0&&p.dashDir===-p.ad)p.face=p.ad;else if(dir)p.face=dir;else if(p.has)p.face=p.ad;
   if(can&&pressedJ&&!airBefore){
-    p.vy=-p.ch.jump;p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
+    if(!ftLock)p.vy=-p.ch.jump;p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
     if(p.has)p.meter={t:0,m:0};
     else if(o.fakeT>0&&Math.abs(o.x-p.x)<140&&p.dash<=0)p.bit=true;
   }
+  if(p.push){p.push.t-=dt;p.vx=p.push.vx;if(p.push.t<=0)p.push=null}
   p.x=clamp(p.x+p.vx*dt,26,W-26);
   p.vy+=PG*dt;p.y+=p.vy*dt;
   let landed=false;
@@ -575,7 +604,7 @@ function stepPlayer(p,o,inp,dt,act){
     if(!can||!p.has)p.meter=null;
     else{
       p.meter.t+=dt;p.meter.m=1-Math.abs(p.vy)/p.ch.jump;
-      if(releasedJ)releaseShot(p,o);
+      if(releasedJ){if(st.ft&&p===st.ft.p)ftRelease(p,o);else releaseShot(p,o)}
     }
   }
   if(p.pend&&(p.pend.t<=0||landed)){const pe=p.pend;p.pend=null;if(p.has)launch(p,pe.c)}
@@ -599,7 +628,7 @@ function deadBall(p,o){
   st.phase='goal';st.pt=1.1;st.concede=o;
 }
 function startFake(p){
-  p.fakeId=(p.fakeId||0)+1;
+  p.fakeId=(p.fakeId||0)+1;p.vx=0;
   p.fakeT=.34;p.fakeCd=.8;p.anim={n:'fake',t:0,d:.34};
   sfx('tick');
 }
@@ -612,7 +641,18 @@ function startDash(p,o,inp){
     else if(Math.abs(o.x-p.x)<110){const nm=pick(DASHMOVES);p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm,true)}
   }
 }
+/* the shove: on offense, the steal button pushes the defender in front back. Only on the ground, only at arm's length. It costs a little of the takeover bar; without enough, the bar shakes red. */
+function shoveMove(p,o){
+  if(p.y<FLOOR-4)return;
+  if(!(Math.abs(o.x-p.x)<60&&(o.x-p.x)*p.ad>0))return;
+  if(p.to<.2){p.nobar=.25;return}
+  p.to=clamp(p.to-.2,0,1);
+  o.push={vx:p.ad*300,t:.3};o.anim={n:'stepback',t:0,d:.35};
+  p.protect=.5;p.anim={n:'shove',t:0,d:ANIMS.shove.d};
+  msg('SHOVE',p.x,p.y-110,'#ffd166');sfx('steal');
+}
 function trySteal(p,o){
+  if(p.has){shoveMove(p,o);return}
   p.stealCd=.9;p.anim={n:'swipe',t:0,d:.22};
   if(o.has&&o.protect<=0&&o.stun<=0&&!o.dunking&&o.y>=FLOOR-4&&Math.abs(p.x-o.x)<48&&Math.abs(p.y-o.y)<50&&(o.x-p.x)*p.face>=-8){
     if(Math.random()<((p.ch.stl||.7)+T(p,'stl',0))*(1-Math.min(.9,(o.ch.sec||0)+T(o,'sec',0)))){steal(p,o);return}
@@ -657,7 +697,7 @@ function launch(p,c){
   p.stat.fga++;
   const h=hoops[p.atk],b=st.ball,dist=Math.abs(p.x-h.x),o=st.p[1-p.idx];
   const t=tiers(p,o,c.layup);
-  const pts=dist>300?3:2;
+  const pts=st.ft&&st.ft.p===p?1:dist>300?3:2;
   /* The meter only sets the release: how far from the apex it was and how contested the shot is set the error.
      The path after that is simulated (gravity, rim, backboard), so a shot can go in, rim out, bank or miss. */
   let tier;
@@ -673,13 +713,24 @@ function launch(p,c){
   const T=(c.layup?.75+dist/2000:.72+dist/1500)+(c.anim==='floater'?.14:0);
   /* some jumpers are aimed off the backboard (bank shots) */
   const bank=!c.layup&&dist>110&&Math.random()<.3;
-  const aimX=bank?h.bx-h.s*R:h.x,aimY=bank?RIMY-22:RIMY+6;
-  const ne=n*1.4,S=1.3*(15+80*ne*ne)*(1+.5*(1-t.cm))*(1+dist/450)/Math.sqrt(p.ch.zone||1);
+  let aimX=bank?h.bx-h.s*R:h.x;const aimY=bank?RIMY-22:RIMY+6;
+  /* a layup that is not green is aimed at the near edge of the rim, so it hits the rim and rolls in or out */
+  if(c.layup&&tier!=='green')aimX=h.x+Math.sign(p.x-h.x)*RIMH*.9;
+  /* free throws: green swishes in; yellow and orange hit the front of the rim and may roll in; red mostly hits the rim and sometimes airballs */
+  if(st.ft&&st.ft.p===p&&tier!=='green'){const sg=Math.sign(p.x-h.x)||1;aimX=(tier==='red')?(Math.random()<.08?h.x+sg*(RIMH+70):h.x+sg*(RIMH+2)):h.x+sg*RIMH*.95}
+  let ne=n*1.4,S=1.3*(15+80*ne*ne)*(1+.5*(1-t.cm))*(1+dist/450)/Math.sqrt(p.ch.zone||1);
+  /* a green release is a sure make: aimed at the middle of the rim with much less error (every layup, almost every jumper) */
+  const ftShot=!!(st.ft&&st.ft.p===p);
+  const sure=tier==='green'&&(c.layup||ftShot||Math.random()<.9);
+  if(sure)S*=.25;
+  S=Math.min(S,240);
+  /* free throws that aren't green are aimed tighter, so yellow reliably touches the rim */
+  if(st.ft&&st.ft.p===p&&tier!=='green')S=Math.min(S,tier==='red'?8:6);
   b.x=sx;b.y=sy;
   b.vx=(aimX-sx)/T+gauss()*S;
   b.vy=(aimY-sy)/T-.5*G*T+gauss()*S*.6;
   b.state='air';b.owner=null;
-  b.shot={by:p,pts,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95};b.noPick={p,t:.4};
+  b.shot={by:p,pts,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95,sure,ft:!!(st.ft&&st.ft.p===p)};b.noPick={p,t:.4};
   p.has=false;
   if(!c.keepAnim){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm)}
   msg(label,p.x,p.y-120,col);sfx('tick');
@@ -688,7 +739,7 @@ function startDunk(p,h,style,long){
   p.meter=null;p.face=p.ad;p.stat.fga++;
   const spec=DUNKS[style],o=st.p[1-p.idx],tx=h.x-p.ad*44;
   /* if a defender jumps in front of the dunker, this roll decides whether he gets posterized (see stepDunk) */
-  p.dunking={t:0,dur:long?spec.dur*1.55:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8};
+  p.dunking={t:0,dur:long?spec.dur*1.55:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8,hang:true};
   msg('DUNK',p.x,p.y-120,'#ffb347');
   announce(p,style,true);
 }
@@ -710,7 +761,7 @@ function stepDunk(p,o,dt){
   const rejectable=!d.poster&&o.y<FLOOR-40&&Math.abs(o.x-d.tx)<o.ch.reach+T(o,'reach',0)+34;
   if(rejectable){
     b.x=p.x+p.face*14;b.y=p.y-70;
-    blockBall(o,p,'REJECTED!');return;
+    blockBall(o,p,'REJECTED!',o.x+o.face*6,o.y-100);return;
   }
   b.state='air';b.owner=null;b.x=h.x-p.ad*4;b.y=RIMY-14;b.vx=0;b.vy=260;
   b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,long:d.long,poster:!!d.poster,open:Math.abs(o.x-p.x)>110};b.noPick={p,t:.5};
@@ -718,7 +769,7 @@ function stepDunk(p,o,dt){
   if(d.poster){
     st.flash=1;st.shake=.5;announce(p,'poster');
     p.anim={n:Math.random()<.5?'chestpound':'flex',t:0,d:1};
-  }
+  }else p.hang=.6;
 }
 /* the defender is knocked backward in the air, then crashes to the floor and lies there before getting up */
 function startFall(o,by){
@@ -768,6 +819,7 @@ function blockBall(o,sh,label,cx,cy){
   if(vn<0){const e=.55;rx-=(1+e)*vn*nx;ry-=(1+e)*vn*ny}
   b.vx=rx+hvx;b.vy=ry+hvy;
   if(Math.hypot(b.vx,b.vy)<140){b.vx+=nx*160;b.vy+=ny*160}
+  const bsp=Math.hypot(b.vx,b.vy);if(bsp>460){b.vx*=460/bsp;b.vy*=460/bsp}
   msg(label,b.x,b.y-30,'#ef4f48');sfx('block');
   if(Math.random()<.015){give(o);announce(o,'snatchblock');sfx('steal');return}
 }
@@ -794,16 +846,23 @@ function updateBall(dt,live){
       const bounce=p.y>=FLOOR?Math.abs(Math.sin(b.t*8+p.idx))*28:0,sc=p.ch.sc||1;
       tx=p.x+p.face*18*sc;ty=p.y-(16+bounce)*sc;
     }
+    /* a free throw: the shooter pound-dribbles the ball on the floor twice before the shot */
+    if(st.ft&&st.ftWait>0&&p===st.ft.p){tx=p.x+p.face*12;ty=FLOOR-R-40*Math.abs(Math.sin(2*Math.PI*(1-st.ftWait)))}
+    /* a dash: one big dribble that bounces once in the direction of the dash */
+    if(p.dash>0&&p.has&&!st.ft){const fwd=p.dashDir===p.face,pr=clamp(1-p.dash/.26,0,1);tx=p.x+p.face*(fwd?26:12);ty=FLOOR-R-50*Math.abs(Math.cos(Math.PI*pr))}
     /* ease toward the hand so the ball never snaps between poses */
     const k=1-Math.exp(-dt*45);
     b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;
     b.vx=0;b.vy=0;return;
   }
   const py=b.y;
-  b.vy+=G*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+  b.vy+=G*dt;
+  const gsp=Math.hypot(b.vx,b.vy);if(gsp>900){b.vx*=900/gsp;b.vy*=900/gsp}
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
   if(b.shot)b.shot.t+=dt;
   if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)*.6}
   if(b.x>W-R){b.x=W-R;b.vx=-Math.abs(b.vx)*.6}
+  const sureNow=!!(b.shot&&b.shot.sure);
   for(const h of hoops){
     if(b.y>-40&&b.y<RIMY+28){
       if(h.s===1&&b.x+R>h.bx&&b.vx>0){b.x=h.bx-R;b.vx=-b.vx*.55;touchRim()}
@@ -819,17 +878,24 @@ function updateBall(dt,live){
       }
     }
   }
+  const sS=b.shot;
+  if(sS&&sS.sure&&!sS.scored&&b.vy>-60&&b.y>RIMY-R*3&&b.y<RIMY+R*3){const hs=hoops[sS.by.atk];b.x+=(hs.x-b.x)*Math.min(1,dt*6)}
   const s=b.shot;
   if(s&&!s.scored&&live){
     const sh=s.by,o=st.p[1-sh.idx];
     /* a block needs the defender's hand to reach the ball in the air, and only while the ball is still above the rim */
-    if(!s.dunk&&o.y<FLOOR-30&&b.y<RIMY-4){
+    if(!s.dunk&&!s.ft&&o.y<FLOOR-30&&b.y<RIMY-4){
       const cx=o.x+o.face*6,cy=o.y-100;
       const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
       if(Math.hypot(b.x-cx,b.y-cy)<reachR+R){blockBall(o,sh,'BLOCKED!',cx,cy);return}
     }
+    /* shooting foul: a defender's body hits the shooter in the air while his hand is nowhere near the ball. Called rarely. */
+    if(foulsOn&&!s.dunk&&!s.ft&&!s.foulCk&&sh.y<FLOOR-10&&b.state==='air'&&Math.abs(o.x-sh.x)<20&&Math.abs((o.y-40)-(sh.y-40))<46&&Math.hypot(b.x-(o.x+o.face*6),b.y-(o.y-100))>40){
+      s.foulCk=true;
+      if(Math.random()<.21){s.foul=true;sfxWhistle();msg('FOUL',sh.x,sh.y-120,'#ffd166');st.shake=Math.max(st.shake,.2)}
+    }
     const h=hoops[sh.atk];
-    if(b.vy>0&&py<=RIMY&&b.y>RIMY&&Math.abs(b.x-h.x)<RIMH&&!s.noscore)scoreShot(s);
+    if(b.vy>0&&py<=RIMY&&b.y>RIMY&&Math.abs(b.x-h.x)<(s.sure?RIMH+R:RIMH)&&!s.noscore)scoreShot(s);
   }
   if(b.y>FLOOR-R){
     b.y=FLOOR-R;
@@ -868,6 +934,8 @@ function celebrateScore(s,p){
 function scoreShot(s){
   const p=s.by,h=hoops[p.atk];
   s.scored=true;p.score+=s.pts;p.stat.fgm++;
+  if(s.foul&&!s.ft)st.ftPending={p,n:1};
+  if(s.ft&&st.ft)st.ft.left--;
   tkGain(p,s.dunk?'dunk':s.pts===3?'three':'two');
   if(s.long||s.poster)tkGain(p,'poster');
   if(s.open)tkGain(st.p[1-p.idx],'open');
@@ -903,13 +971,15 @@ function startTip(){
     if(p.ai)p.tipAt=ta+.12-p.ch.jump/PG-.02+(Math.random()*2-1)*(.3*(1-p.lvl)+.05);
   }
 }
+/* the toss peaks at this time: jumping earlier than that gets the ball on its way up, so nobody may jump before it */
+const TIP_PEAK=313/401;
 function tipStep(dt){
   poll();
   const T=st.tip,b=st.ball;T.t+=dt;
   for(const p of st.p){
     let want=false;
-    if(p.ai)want=p.tj==null&&T.t>=p.tipAt;
-    else{want=p.tj==null&&!!p.inp.jump&&!p.tipJp;p.tipJp=!!p.inp.jump}
+    if(p.ai)want=p.tj==null&&T.t>=Math.max(p.tipAt,TIP_PEAK);
+    else{want=p.tj==null&&!!p.inp.jump&&!p.tipJp&&T.t>=TIP_PEAK;p.tipJp=!!p.inp.jump}
     if(want&&!T.tapped&&p.y>=FLOOR){p.vy=-p.ch.jump;p.tj=T.t;p.anim={n:'tipjump',t:0,d:1}}
     p.vy+=PG*dt;p.y+=p.vy*dt;
     if(p.y>=FLOOR){p.y=FLOOR;p.vy=0}
@@ -974,17 +1044,57 @@ function update(dt){
   }
   if(st.phase==='tip'){tipStep(dt);return}
   if(st.phase==='play'){
-    if(st.time>0)st.time=Math.max(0,st.time-dt);
+    if(st.ftWait>0)st.ftWait=Math.max(0,st.ftWait-dt);
+    if(st.time>0&&!st.ft)st.time=Math.max(0,st.time-dt);
     for(const p of st.p)if(p.tkOn){p.to-=dt/TK_DUR;if(p.to<=0){p.to=0;p.tkOn=false;msg('TAKEOVER OVER',p.x,p.y-130,'#9db2c4')}}
     updatePlayers(dt,true);updateBall(dt,true);
-    if(st.time<=0&&!st.ball.shot&&st.ball.state!=='air'&&!st.p[0].dunking&&!st.p[1].dunking)checkEnd();
+    const bl=st.ball,settled=bl.y>=FLOOR-R-.5&&Math.abs(bl.vy)<1&&Math.abs(bl.vx)<10;
+    if(st.time<=0&&!bl.shot&&bl.state!=='air'&&(bl.state==='held'||settled)&&!st.p[0].dunking&&!st.p[1].dunking)checkEnd();
     return;
   }
   if(st.phase==='goal'){
     st.pt-=dt;updatePlayers(dt,false);updateBall(dt,false);
-    if(st.pt<=0&&!checkEnd()){resetPositions(st.concede);st.phase='count';st.pt=1.1}
+    if(st.pt<=0){
+      if(st.ftPending)startFT();
+      else if(st.ft&&st.ft.left>0)ftSetup();
+      else{st.ft=null;if(!checkEnd()){resetPositions(st.concede);st.phase='count';st.pt=1.1}}
+    }
   }
 }
+/* ---------- free throws ---------- */
+/* the free-throw timing bar: a marker sweeps back and forth; release it in the green middle */
+function ftBar(t){const f=(t/.9)%1;return f<.5?f*2:2-f*2}
+function ftRelease(p,o){
+  const d=Math.abs(ftBar(p.meter.t)-.5)*2;   /* 0 at the centre of the green, 1 at the far edge */
+  const t=tiers(p,o,false);
+  p.meter=null;
+  launch(p,{layup:false,u:t.g*d/.12,sgn:1,anim:'jumper'});
+}
+function drawFTMeter(p){
+  const pos=ftBar(p.meter.t),x0=p.x-75,y=p.y-175,w=150;
+  ctx.fillStyle='#b8322c';ctx.fillRect(x0,y,w,12);
+  ctx.fillStyle='#f2c92c';ctx.fillRect(x0+w*.35,y,w*.3,12);
+  ctx.fillStyle='#17803f';ctx.fillRect(x0+w*.44,y,w*.12,12);
+  ctx.fillStyle='#fff';ctx.fillRect(x0+w*pos-2,y-4,4,20);
+}
+function startFT(){
+  const f=st.ftPending;st.ftPending=null;
+  st.ft={p:f.p,left:f.n};
+  ftSetup();
+}
+function ftSetup(){
+  const f=st.ft,p=f.p,o=st.p[1-p.idx],h=hoops[p.atk];
+  for(const q of [p,o]){q.y=FLOOR;q.vx=0;q.vy=0;q.meter=null;q.anim=null;q.dunking=null;q.dash=0;q.stun=0;q.has=false;q.fall=null;q.face=q.ad}
+  /* free throws are shot from behind the white line, halfway between it and the three-point line; the defender stands under the rim */
+  p.x=h.x-h.s*225;o.x=h.x;
+  st.missBy=null;st.ball.shot=null;
+  st.phase='play';st.ftWait=1;
+  give(p);
+  if(p.ai)p.ai.ftT=undefined;
+  p.anim={n:'dribble',t:0,d:1};
+  msg('FREE THROW',p.x,p.y-130,'#ffd166');
+}
+
 /* ---------- CPU opponent ---------- */
 /* CPU release point: spread across its shot windows, harder CPUs release closer to the apex */
 function aiRelease(p,o,lvl){const t=tiers(p,o,layupNow(p));return Math.random()*t.o*(1.1-.3*lvl)}
@@ -996,13 +1106,25 @@ function aiInput(p,o,dt){
   if(p.has){
     const dist=Math.abs(p.x-h.x);
     if(p.meter){
+      if(st.ft&&st.ft.p===p){
+        if(a.ftT===undefined)a.ftT=(Math.random()<.5?.225:.675)+(Math.random()-.5)*.3*(1.1-lvl);
+        inp.jump=p.meter.t<a.ftT?1:0;return;
+      }
       const u=Math.abs(p.vy)/p.ch.jump;
       if(a.drive)go(h.x-p.ad*20,4);
       if(u<=a.tgtU||p.vy>=0)inp.jump=0;   /* release near the apex (the meter only exists once airborne) */else inp.jump=1;
       return;
     }
     if(p.y<FLOOR)return;
+    /* a free throw: nobody can move, so the CPU just takes the shot */
+    if(st.ft&&st.ft.p===p){a.tgtU=aiRelease(p,o,lvl);inp.jump=(st.ftWait>0||p.jp)?0:1;return}
     if(p.to>=1&&!p.tkOn)inp.sup=1;
+    /* clutch: trailing by 1 to 3 with seconds left. The CPU works for a good open look first, takes it when it has one,
+       and only throws up a heave from wherever it is in the last moment before the buzzer. */
+    const behind=o.score-p.score;
+    const clutch=st.time<=8&&behind>=1&&behind<=3;
+    if(clutch&&st.time<=1.5){a.tgtU=aiRelease(p,o,lvl);inp.jump=1;return}
+    if(clutch&&tiers(p,o,layupNow(p)).cm>=.95&&Math.abs(o.x-p.x)>=85){a.tgtU=aiRelease(p,o,lvl);inp.jump=1;return}
     if(!a.spot){
       const far=p.ch.deep<.7?.5:1;
       a.spot=h.x-p.ad*(150+Math.random()*(60+lvl*110)*far);
@@ -1014,6 +1136,10 @@ function aiInput(p,o,dt){
       if(Math.random()<.5){inp.l=0;inp.r=0;if(p.ad===1)inp.l=1;else inp.r=1}
       inp.dash=1;
     }
+    /* CPU stepback: a quick dash straight back out of a close defender */
+    if(gap<90&&p.dashCd<=0&&Math.random()<dt*lvl*1.2){inp.l=0;inp.r=0;if(p.ad===1)inp.l=1;else inp.r=1;inp.dash=1}
+    /* CPU shove: a defender right in front at arm's length gets pushed back, with the CPU's own takeover bar */
+    if(gap<60&&Math.random()<dt*lvl*1.5)shoveMove(p,o);
     if(a.drive){
       go(h.x-p.ad*20,4);
       if(dist<=185&&p.vx*p.ad>95){inp.jump=1;a.tgtU=aiRelease(p,o,lvl)}
@@ -1192,6 +1318,8 @@ function kitOf(p){
   return {jersey:p.ch.col,trim:null,num:null,short:'#17212b',stripe:null};
 }
 function drawPlayer(p){
+  /* a dash leaves a ghost of the player trailing behind */
+  if(p.dash>0&&!p._ghost){const g=Object.create(p);g._ghost=true;g.x=p.x-p.dashDir*30;ctx.save();ctx.globalAlpha=.25;drawPlayer(g);ctx.restore()}
   const x=p.x,y=p.y,f=p.face,sc=p.ch.sc||1,pz=smoothPose(p);
   const skin=p.ch.skin||'#f0c8a3',skin2=p.ch.skin2||'#d2a781',kit=kitOf(p);
   const layupAnim=p.anim&&LAYUPS.some(q=>q[0]===p.anim.n);
@@ -1202,11 +1330,6 @@ function drawPlayer(p){
   if(p.tkOn){
     const gr=ctx.createRadialGradient(x,y-40,6,x,y-40,54);gr.addColorStop(0,p.ch.col+'77');gr.addColorStop(1,p.ch.col+'00');
     ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y-40,54+Math.sin(performance.now()/120)*3,0,7);ctx.fill();
-  }
-  if(p.dash>0){
-    ctx.globalAlpha=.2;ctx.fillStyle=p.ch.col;
-    for(let i=1;i<=3;i++)ctx.fillRect(x-p.dashDir*i*16-12,y-62,24,38);
-    ctx.globalAlpha=1;
   }
   if(p.stun>0&&!p.fall){ctx.translate(Math.sin(performance.now()/40)*2,0);ctx.globalAlpha=.7}
   ctx.translate(x+(pz.dx||0),y+(pz.dy||0));
@@ -1245,7 +1368,7 @@ function drawPlayer(p){
     const ty=Math.min(y-102*sc,FLOOR-118*sc);
     ctx.beginPath();ctx.moveTo(x,ty);ctx.lineTo(x-6,ty-10);ctx.lineTo(x+6,ty-10);ctx.fill();
   }
-  if(p.meter)drawMeter(p);
+  if(p.meter){if(st.ft&&p===st.ft.p)drawFTMeter(p);else drawMeter(p)}
 }
 function drawMeter(p){
   const o=st.p[1-p.idx],t=tiers(p,o,layupNow(p));
@@ -1289,12 +1412,12 @@ function drawHUD(){
     ctx.textAlign=al;ctx.fillStyle='#eef3f7';ctx.font='700 40px Barlow Condensed, Arial Narrow, sans-serif';
     ctx.fillText(String(p.score),x,44);
     ctx.font='600 13px Inter, sans-serif';ctx.fillStyle=p.ch.col;ctx.fillText(name.toUpperCase(),x,62);
-    const bw=110,bx=al==='left'?x:x-bw;
-    ctx.fillStyle='rgba(8,16,26,.7)';ctx.fillRect(bx,70,bw,8);
+    const bw=110,nb=p.nobar||0,shk=nb>0?Math.sin(performance.now()/22)*4*(nb/.25):0,bx=(al==='left'?x:x-bw)+shk;
+    ctx.fillStyle=nb>0?'rgba(255,59,59,.5)':'rgba(8,16,26,.7)';ctx.fillRect(bx,70,bw,8);
     const full=p.to>=1&&!p.tkOn;
-    ctx.fillStyle=p.tkOn?p.ch.col:full&&Math.floor(performance.now()/180)%2?'#fff':'#ffb347';
+    ctx.fillStyle=nb>0?'#ff3b3b':p.tkOn?p.ch.col:full&&Math.floor(performance.now()/180)%2?'#fff':'#ffb347';
     ctx.fillRect(bx,70,bw*p.to,8);
-    ctx.font='600 10px Inter, sans-serif';ctx.fillStyle='rgba(238,243,247,.75)';
+    ctx.font='600 10px Inter, sans-serif';ctx.fillStyle=nb>0?'#ff3b3b':'rgba(238,243,247,.75)';
     ctx.fillText(p.tkOn?p.ch.tk.name:full?'TAKEOVER READY':'TAKEOVER',x,92);
   };
   side(a,16,'left',(st.two?'P1 · ':'You · ')+a.ch.name);
@@ -1357,12 +1480,14 @@ function draw(){
 const scr=document.getElementById('screen');
 function showScreen(html){scr.innerHTML=html;scr.hidden=false;document.getElementById('pause').hidden=true}
 function hideScreen(){scr.hidden=true;scr.innerHTML=''}
+/* whether shooting fouls and free throws happen in matches (off by default) */
+let foulsOn=false;
 function homeScreen(){
   st=null;setKeysHint();
   showScreen(`<div class="card menu"><p class="eyebrow">1v1 street basketball</p><h2>Hoop Stars</h2>
   <button class="btn primary" data-act="single" type="button">Single player</button>
   <button class="btn primary" data-act="two" type="button">Two players</button>
-  <p class="small">Matches run 1:30. A tie goes to a 45 second overtime.</p></div>`);
+  <button class="btn" data-act="fouls" type="button">Fouls: ${foulsOn?'On':'Off'}</button></div>`);
 }
 function singleScreen(){
   showScreen(`<div class="card menu"><p class="eyebrow">Single player</p><h2>Choose a mode</h2>
@@ -1545,6 +1670,7 @@ scr.addEventListener('click',e=>{
   else if(act==='tour'){flow.mode='tour';pickScreen()}
   else if(act==='pick')pickScreen();
   else if(act==='home')homeScreen();
+  else if(act==='fouls'){foulsOn=!foulsOn;homeScreen()}
   else if(act==='go'){if(flow.mode==='tour'){newTournament();bracketScreen()}else launchMatch()}
   else if(act==='bracket')bracketScreen();
   else if(act==='resume')resumeGame();
