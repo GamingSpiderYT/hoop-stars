@@ -394,11 +394,14 @@ function sfxImpact(kind,speed){
   try{
     const t=audioNow(),k=clamp(speed/400,.12,1.4);
     if(kind==='rim'){
-      const hi=900+700*k;
-      pitchTone(t,hi,hi*.84,.22,'square',.03*k);
-      pitchTone(t,hi*1.52,hi*1.38,.14,'triangle',.022*k);
-      pitchTone(t,hi*2.37,hi*2.2,.09,'sine',.016*k);
-      noiseBurst(t,.03,'highpass',2000,3000,.7,.12*k);
+      /* a metal ring: sine partials at bell-like ratios that ring out and fade, with a soft click on contact. Harder hits ring higher and louder */
+      /* a steel rim: a sharp metallic strike with inharmonic partials, then a short rattle as the iron keeps shaking */
+      const f=520+260*k;
+      noiseBurst(t,.008,'highpass',3500,2500,.9,.2*k);
+      pitchTone(t,f,f*.985,.32,'sine',.09*k);
+      pitchTone(t,f*2.32,f*2.25,.18,'sine',.05*k);
+      pitchTone(t,f*4.25,f*4.0,.09,'sine',.025*k);
+      for(let r=0;r<3;r++)noiseBurst(t+.02+r*.017,.012,'bandpass',3000-r*350,2200,1.6,(.07-r*.015)*k);
     }else{
       pitchTone(t,96,50,.2,'sine',.2*k);
       noiseBurst(t,.07,'lowpass',420,160,.8,.12*k);
@@ -412,6 +415,27 @@ function sfxSwish(speed){
     const t=audioNow(),k=clamp(speed/500,.2,1.2);
     noiseBurst(t,.32,'bandpass',4200,6500,.9,.05*k);
     noiseBurst(t+.05,.26,'bandpass',2600,1800,1.1,.04*k);
+  }catch(e){}
+}
+/* a sharp block: a hard thud with a crack on top */
+function sfxBlock(){
+  if(muted)return;
+  try{
+    const t=audioNow();
+    noiseBurst(t,.05,'bandpass',2600,1200,1.4,.22);
+    pitchTone(t,190,66,.17,'sine',.32);
+    pitchTone(t,420,170,.08,'triangle',.07);
+  }catch(e){}
+}
+/* a snatch block: a heavy catch with a low roar swelling behind it */
+function sfxSnatch(){
+  if(muted)return;
+  try{
+    const t=audioNow();
+    pitchTone(t,120,42,.45,'sine',.38);
+    noiseBurst(t,.06,'bandpass',1800,900,1.1,.2);
+    noiseBurst(t+.04,.7,'lowpass',900,220,.7,.2);
+    noiseBurst(t+.1,.8,'bandpass',500,950,.8,.07);
   }catch(e){}
 }
 let crowd=null;
@@ -462,6 +486,80 @@ function crowdUpdate(dt){
   if(crunch&&st.phase==='play'&&Math.random()<dt*.22)cheer(.4,1.5);
 }
 function msg(text,x,y,col){st.msgs.push({t:0,text,x,y,col:col||'#fff'})}
+
+/* ---------- particles: one fixed pool, so bursts never allocate ---------- */
+const PMAX=360,parts=[];for(let i=0;i<PMAX;i++)parts.push({on:false});
+let pNext=0;
+const GOLD='255,211,77',GREENP='61,220,132',WHITEP='255,255,255';
+/* a jersey color as "r,g,b", brightened if it is too dark to read as light */
+function jcol(hex){const c=hexRGB(hex),m=Math.max(c[0],c[1],c[2]);if(m<20)return '200,200,200';const k=m<150?150/m:1;return c.map(v=>Math.min(255,Math.round(v*k))).join(',')}
+function emit(o){
+  for(let k=0;k<PMAX;k++){
+    const q=parts[pNext];pNext=(pNext+1)%PMAX;
+    if(!q.on){q.on=true;q.t=0;q.kind='dot';q.g=0;q.drag=0;q.grow=0;q.lw=2;q.add=false;q.a0=1;q.shrink=false;Object.assign(q,o);return q}
+  }
+  return null;
+}
+function updateParts(dt){
+  for(const q of parts){
+    if(!q.on)continue;
+    q.t+=dt;if(q.t>=q.life){q.on=false;continue}
+    q.vy+=q.g*dt;
+    if(q.drag){const f=Math.max(0,1-q.drag*dt);q.vx*=f;q.vy*=f}
+    q.x+=q.vx*dt;q.y+=q.vy*dt;
+  }
+}
+function drawParts(){
+  ctx.save();
+  for(const q of parts){
+    if(!q.on)continue;
+    const k=q.t/q.life,a=(1-k)*q.a0;
+    ctx.globalCompositeOperation=q.add?'lighter':'source-over';
+    if(q.kind==='ring'){
+      ctx.strokeStyle='rgba('+q.col+','+a+')';ctx.lineWidth=q.lw*(1-k)+.6;
+      ctx.beginPath();ctx.arc(q.x,q.y,q.size+q.grow*q.t,0,7);ctx.stroke();
+    }else{
+      ctx.fillStyle='rgba('+q.col+','+a+')';
+      ctx.beginPath();ctx.arc(q.x,q.y,Math.max(.4,q.size*(q.shrink?1-k*.7:1)),0,7);ctx.fill();
+    }
+  }
+  ctx.restore();
+}
+/* (a) sparks off a green release: gold and green, thrown up and out */
+function burstSparks(x,y){
+  for(let i=0;i<14;i++){
+    const a=-Math.PI/2+(Math.random()-.5)*2.2,sp=90+Math.random()*190;
+    emit({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.35+Math.random()*.3,size:1.8+Math.random()*1.8,col:i%2?GOLD:GREENP,g:420,add:true,shrink:true});
+  }
+}
+/* (b) a crisp white puff of air as a clean swish drops through the net */
+function swishPuff(x,y){
+  emit({kind:'ring',x,y,size:4,grow:80,life:.3,col:WHITEP,lw:2.5});
+  for(let i=0;i<10;i++){
+    const sp=90+Math.random()*130,dir=Math.random()<.5?-1:1,a=.2+Math.random()*.9;
+    emit({x:x+(Math.random()-.5)*14,y,vx:dir*Math.cos(a)*sp,vy:30+Math.sin(a)*sp*.6,life:.26+Math.random()*.16,size:1.8+Math.random()*1.5,col:WHITEP,drag:3,shrink:true});
+  }
+}
+/* (c) a small dust puff at the feet on a crossover or step-back, kicked up opposite to the move */
+function puffDust(p,dir){
+  for(let i=0;i<7;i++)emit({x:p.x+(Math.random()-.5)*14,y:FLOOR+1,vx:-dir*(30+Math.random()*80),vy:-(8+Math.random()*28),life:.4+Math.random()*.2,size:2.6+Math.random()*2.2,col:'196,184,164',a0:.5,drag:2.2});
+}
+/* (d) an impact shockwave and sparks on a block; gold for a snatch */
+function burstBlock(x,y,gold){
+  const c=gold?GOLD:WHITEP;
+  emit({kind:'ring',x,y,size:5,grow:gold?210:150,life:gold?.5:.34,col:c,lw:gold?4:3,add:true});
+  if(gold)emit({kind:'ring',x,y,size:2,grow:120,life:.4,col:GOLD,lw:2.5,add:true});
+  const n=gold?26:14;
+  for(let i=0;i<n;i++){
+    const a=Math.random()*Math.PI*2,sp=(gold?140:110)+Math.random()*(gold?280:200);
+    emit({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.3+Math.random()*.35,size:1.8+Math.random()*1.9,col:gold&&i%3?GOLD:WHITEP,g:300,add:true,shrink:true});
+  }
+}
+/* takeover: flame and sparks rising off the body in the player's jersey color */
+function emitFlame(p){
+  const kit=kitOf(p),c=hexRGB(kit.jersey),base=jcol(kit.jersey),hot=c.map(v=>Math.min(255,v+120)).join(',');
+  emit({x:p.x+(Math.random()-.5)*24,y:p.y-6-Math.random()*56,vx:(Math.random()-.5)*28,vy:-(50+Math.random()*80),life:.5+Math.random()*.45,size:2+Math.random()*2.6,col:Math.random()<.4?hot:base,g:-40,add:true,shrink:true});
+}
 
 /* ---------- move animations ---------- */
 const sm=s=>s*s*(3-2*s),sn=Math.sin,PI=Math.PI;
@@ -572,7 +670,10 @@ function tkGain(p,ev){
   if(p.to>=1&&was<1)msg('TAKEOVER READY',p.x,p.y-130,p.ch.col);
 }
 function startTakeover(p){
-  p.tkOn=true;st.shake=.25;st.flash=.5;
+  /* activation: a short camera shake, a faint flash around the screen edge in the jersey color, and a ring off the floor */
+  p.tkOn=true;st.shake=Math.max(st.shake,.15);
+  st.edge={col:jcol(kitOf(p).jersey),t:.4,dur:.4};
+  emit({kind:'ring',x:p.x,y:FLOOR+5,size:10,grow:200,life:.45,col:jcol(kitOf(p).jersey),lw:3,add:true});
   msg(p.ch.tk.name,p.x,p.y-130,p.ch.col);cheer(.5,1.2);sfx('score');
 }
 function shotMiss(s){
@@ -592,23 +693,30 @@ function newPlayer(idx,ch){
     inp:{l:0,r:0,jump:0,steal:0,sup:0,dash:0,fake:0},lvl:0,ai:null};
 }
 /* Size of the release window (in jump-speed units). Shrinks with distance and with a nearby or jumping defender. */
+/* How contested a shot is right now, 0 to 1. Three things count: how close the defender is, whether he is between the shooter and
+   the hoop (a defender behind the shooter counts 80% less), and his hand height against the ball's release height. */
+function contestOf(p,o){
+  const dx=Math.abs(o.x-p.x);
+  const fd=clamp(1-(dx-24)/120,0,1);
+  const rel=(o.x-p.x)*p.ad;                          /* positive: the defender is between the shooter and the hoop */
+  const dirF=.2+.8*clamp((rel+24)/48,0,1);
+  const ballY=p.y-(layupNow(p)?84:66);
+  const handY=o.y-(78+((o.ch.reach||40)+T(o,'reach',0))*.55);
+  const vf=clamp(.55+(ballY-handY)/110,.3,1);          /* a hand well below the ball can't get up to it */
+  let c=fd*dirF*vf;
+  if(o.stun>0)c*=.4;
+  /* a stepback gets you open (less coverage) but your momentum costs you accuracy */
+  if(p.step>0)c*=.6;
+  c*=T(p,'cont',1);
+  return clamp(c,0,1);
+}
 function shotWin(p,o){
   const dist=Math.abs(p.x-hoops[p.atk].x);
   const dm=1+((p.ch.deep||1)*T(p,'deep',1)-1)*clamp((dist-200)/250,0,1);
   const f=clamp(1.15-dist/520,.12,1)*dm*(dist>110&&dist<330?T(p,'mid',1):1);
-  const dx=Math.abs(o.x-p.x);
-  let cm=1;
-  if((o.x-p.x)*p.ad>-24){
-    const cover=clamp(1-(dx-30)/110,0,1);
-    cm=1-.32*cover;
-    if(o.y<FLOOR-30)cm*=1-.6*clamp(1-dx/150,0,1);
-    if(o.stun>0)cm=1-(1-cm)*.4;
-  }
-  /* a stepback gets you open (less coverage) but your momentum costs you accuracy */
-  if(p.step>0)cm=1-(1-cm)*.6;
-  cm=1-(1-cm)*T(p,'cont',1);
+  const cp=contestOf(p,o),cm=1-cp;
   const mom=layupNow(p)?1:1-.24*T(p,'mom',1)*clamp(Math.abs(p.vx)/(p.ch.spd*1.5),0,1);
-  return {w:.22*p.ch.zone*f*mom*cm,cm,dist,dm};
+  return {w:.22*p.ch.zone*f*mom,cm,cp,dist,dm};
 }
 function layupNow(p){
   const dist=Math.abs(p.x-hoops[p.atk].x);
@@ -619,7 +727,9 @@ function layupNow(p){
 function tiers(p,o,layup){
   const sw=shotWin(p,o),W=sw.w*(layup?2.2*(p.ch.fin||1)*T(p,'fin',1):1);
   const fs=clamp(1.5-sw.dist/400,.35,1)*sw.dm;
-  return {g:Math.max(.48*W,.07*fs),y:Math.max(W,.12*fs),o:Math.max(1.6*W,.19*fs),cm:sw.cm};
+  /* the contest shrinks the green window by up to 75% when smothered, and the yellow and orange windows a little */
+  const gw=1-.75*sw.cp,ow=1-.25*sw.cp;
+  return {g:Math.max(.48*W,.07*fs)*gw,y:Math.max(W,.12*fs)*ow,o:Math.max(1.6*W,.19*fs)*ow,cm:sw.cm,cp:sw.cp};
 }
 function give(p){
   const b=st.ball;
@@ -665,7 +775,7 @@ function startMatch(chIdx,ch2,cb,two,lvl){
 function stepPlayer(p,o,inp,dt,act){
   p.dashCd=Math.max(0,p.dashCd-dt);p.dash=Math.max(0,p.dash-dt);
   p.stun=Math.max(0,p.stun-dt);p.flash=Math.max(0,p.flash-dt);p.nobar=Math.max(0,(p.nobar||0)-dt);
-  p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);p.fakeT=Math.max(0,p.fakeT-dt);p.fakeCd=Math.max(0,p.fakeCd-dt);
+  if(p.cfx){p.cfx.t-=dt;if(p.cfx.t<=0)p.cfx=null}p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);p.fakeT=Math.max(0,p.fakeT-dt);p.fakeCd=Math.max(0,p.fakeCd-dt);
   if(p.pend)p.pend.t-=dt;
   if(p.anim){p.anim.t+=dt;if(p.anim.t>=p.anim.d)p.anim=null}
   if(p.dunking){stepDunk(p,o,dt);return}
@@ -689,19 +799,20 @@ function stepPlayer(p,o,inp,dt,act){
   if(p.has&&p.dash>0&&p.dashDir===-p.ad)p.face=p.ad;else if(dir)p.face=dir;else if(p.has)p.face=p.ad;
   if(can&&pressedJ&&!airBefore){
     if(!ftLock)p.vy=-p.ch.jump;p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
-    if(p.has)p.meter={t:0,m:0};
+    if(p.has)p.meter={t:0,m:0,cp:contestOf(p,o)};
     else if(o.fakeT>0&&Math.abs(o.x-p.x)<140&&p.dash<=0)p.bit=true;
   }
   if(p.push){p.push.t-=dt;p.vx=p.push.vx;if(p.push.t<=0)p.push=null}
   p.x=clamp(p.x+p.vx*dt,68,732);
-  p.vy+=PG*dt;p.y+=p.vy*dt;
+  /* a heavily contested shooter is rushed: the jump (and so the meter) runs up to 18% faster */
+  p.vy+=PG*dt*(p.meter&&p.meter.cp>.4?1+.18*(p.meter.cp-.4)/.6:1);p.y+=p.vy*dt;
   let landed=false;
   if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;if(airBefore)landed=true}
   p.run+=Math.abs(p.vx)*dt*.06;
   if(p.meter){
     if(!can||!p.has)p.meter=null;
     else{
-      p.meter.t+=dt;p.meter.m=1-Math.abs(p.vy)/p.ch.jump;
+      p.meter.t+=dt;p.meter.m=1-Math.abs(p.vy)/p.ch.jump;p.meter.cp=contestOf(p,o);
       if(releasedJ){if(st.ft&&p===st.ft.p)ftRelease(p,o);else releaseShot(p,o)}
     }
   }
@@ -734,7 +845,7 @@ function startDash(p,o,inp){
   const dir=(inp.r-inp.l)||p.face;
   p.dash=.26;p.dashCd=(p.ch.dcd||1.4)*T(p,'dcd',1);p.dashDir=dir;sfx('dash');
   if(p.has){
-    p.protect=.55;
+    p.protect=.55;puffDust(p,dir);
     if(dir===-p.ad){const nm=pick(STEPBACKS);p.anim={n:nm,t:0,d:ANIMS[nm].d};p.step=1.3;announce(p,nm,true)}
     else if(Math.abs(o.x-p.x)<110){const nm=pick(DASHMOVES);p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm,true)}
   }
@@ -833,9 +944,16 @@ function launch(p,c){
   const label={green:'GREEN',yellow:pre+'CLOSE · '+when,orange:pre+'OFF · '+when,red:pre+'WAY OFF · '+when}[tier];
   const col={green:'#3ddc84',yellow:'#f2c92c',orange:'#f08a24',red:'#ef4f48'}[tier];
   if(tier==='green'){tkGain(p,'green');sfxGreen()}
-  if(t.cm<.85)msg('CONTESTED '+Math.round((1-t.cm)*100)+'%',p.x,p.y-142,'#ffb347');
+  /* the contest level at the moment of release: a floating badge and a floor indicator that fades out */
+  const cp=t.cp;
+  if(!(st.ft&&st.ft.p===p)){
+    const lvl=(cp<.06?'Wide Open':cp>=.7?'Smothered':Math.round(cp*100)+'% Contested').toUpperCase();
+    msg(lvl,p.x,p.y-142,cp<.15?'#9fe6b8':cp<.4?'#f2c92c':'#ff6b5e');
+    p.cfx={cp,t:.7};
+  }
   const n=clamp(c.u/Math.max(t.o,.02),0,3);
   const sx=p.x+p.face*10,sy=p.y-(c.layup?84:66);
+  if(tier==='green')burstSparks(sx,sy);
   /* half of the yellow/orange jumpers are aimed at the back iron */
   const hiArc=!c.layup&&(tier==='yellow'||tier==='orange')&&Math.random()<.5;
   /* some jumpers are aimed off the backboard (bank shots) */
@@ -868,7 +986,11 @@ function launch(p,c){
   if(tier==='yellow'||tier==='orange')S=Math.min(S,16*(1+1.5*(1-t.cm)));
   /* free throws that aren't green are aimed tighter, so yellow reliably touches the rim */
   if(st.ft&&st.ft.p===p&&tier!=='green')S=Math.min(S,tier==='red'?8:6);
-  if((tier==='yellow'||tier==='orange')&&!c.layup)aimX+=(aimX>=h.x?1:-1)*RIMH*3*(1-t.cm);
+  /* a contested miss is physically worse: the early/late target offset grows with the contest, and heavily contested (over 40%) it grows a lot */
+  if((tier==='yellow'||tier==='orange')&&!c.layup){
+    const mul=1+.6*cp+1.1*clamp((cp-.4)/.6,0,1);
+    aimX=h.x+(aimX-h.x)*mul;
+  }
   b.x=sx;b.y=sy;
   /* spin: backspin on jumpers, topspin on layups */
   b.w=c.layup?-1:1;
@@ -876,7 +998,9 @@ function launch(p,c){
   if(sure&&c.layup){const bank=solveBank(sx,sy,h);if(bank){aimX=bank.x;aimY=bank.y}}
   /* every shot gets a real arc: the apex sets vy, the flight time follows from it, and vx covers the distance in that time.
      Jumpers peak well above the rim; layups peak just above their glass target so the ball is dropping when it reaches it. */
-  const apexY=c.layup?aimY-25:Math.max(48,RIMY-118-dist*.02)+(Math.random()*12-6);
+  let apexY=c.layup?aimY-25:Math.max(48,RIMY-118-dist*.02)+(Math.random()*12-6);
+  /* a non-green release under heavy contest (over 40%) goes up higher to get over the defender. A green stays exact */
+  if(!sure&&!c.layup&&cp>.4)apexY=Math.max(28,apexY-18*clamp((cp-.4)/.6,0,1));
   const av=arcVel(sx,sy,aimX,aimY,apexY);
   b.vx=av.vx+gauss()*S;
   b.vy=av.vy+gauss()*S*.6;
@@ -957,11 +1081,28 @@ function handPosR(p,noPose){
 
 /* ---------- ball ---------- */
 /* A block knocks the ball away toward the shooter's backcourt; now and then the blocker snatches it. */
-function blockBall(o,sh,label,cx,cy){
+/* the defender's hand: a circle placed by his height (body scale) and arm reach, so a long-armed big reaches far higher than a small guard */
+function handBox(o){
+  const sc=o.ch.sc||1,arm=(o.ch.reach||40)+T(o,'reach',0);
+  return {x:o.x+o.face*(6+arm*.12),y:o.y-(70*sc+arm*.9),r:9+arm*.14,arm};
+}
+function blockBall(o,sh,label,cx,cy,bull){
   const b=st.ball;
   st.missBy=sh;b.shot=null;tkGain(sh,'miss');
   o.stat.blk++;tkGain(o,'blk');
-  b.state='loose';b.owner=null;b.noPick={p:sh,t:.25};
+  /* an ultra-rare snatch: a bullseye hit near the top of the jump, about 8% (a little more for elite blockers). The ball goes straight into his hands */
+  if(bull){
+    const pr=.08+.05*clamp(((o.ch.blkW||.3)-.3)/.4,0,1)+.03*clamp(T(o,'blk',0)/.25,0,1);
+    if(Math.random()<pr){
+      const hb=handBox(o);b.x=hb.x;b.y=hb.y;b.vx=0;b.vy=0;
+      give(o);
+      st.hitstop=.08;st.shake=Math.max(st.shake,.2);
+      sfxSnatch();cheer(.9,1.6);burstBlock(hb.x,hb.y,true);
+      msg('SNATCH BLOCK!',hb.x,hb.y-30,'#ffd34d');announce(o,'snatchblock');
+      return;
+    }
+  }
+  b.state='loose';b.owner=null;b.noPick={p:sh,t:.25};b.pickCd=.25;
   /* the ball bounces off the hand: the contact normal sets the direction and the blocker's own motion adds to it */
   let nx=b.x-cx,ny=b.y-cy;const d=Math.hypot(nx,ny)||1;nx/=d;ny/=d;
   const hvx=o.vx,hvy=o.vy;
@@ -969,10 +1110,12 @@ function blockBall(o,sh,label,cx,cy){
   const vn=rx*nx+ry*ny;
   if(vn<0){const e=.55;rx-=(1+e)*vn*nx;ry-=(1+e)*vn*ny}
   b.vx=rx+hvx;b.vy=ry+hvy;
-  if(Math.hypot(b.vx,b.vy)<140){b.vx+=nx*160;b.vy+=ny*160}
+  /* a block sends the ball outward and down, never back up */
+  if(b.vy<-40)b.vy=-b.vy*.4;
+  if(Math.hypot(b.vx,b.vy)<140){b.vx+=nx*160;b.vy+=Math.abs(ny)*160}
   const bsp=Math.hypot(b.vx,b.vy);if(bsp>460){b.vx*=460/bsp;b.vy*=460/bsp}
-  msg(label,b.x,b.y-30,'#ef4f48');sfx('block');
-  if(Math.random()<.015){give(o);announce(o,'snatchblock');sfx('steal');return}
+  st.hitstop=.04;
+  msg(label,b.x,b.y-30,'#ef4f48');sfxBlock();burstBlock(cx,cy,false);
 }
 /* the first time a yellow or orange touches the rim, it is decided whether it rolls in (scores) or bounces out. Nothing else is forced. */
 function rimDecide(){
@@ -1080,21 +1223,26 @@ function stepBall(dt,live){
   }
   if(!s||s.scored||!live)return false;
   const sh=s.by,o=st.p[1-sh.idx];
-  /* a block: a solid hit on a rising ball above the rim, before it has touched the rim */
-  if(!s.dunk&&!s.ft&&!s.sure&&!s.rimTouched&&o.y<FLOOR-30&&b.y<RIMY-4&&b.vy<0){
-    const cx=o.x+o.face*6,cy=o.y-100;
-    const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
-    if(Math.hypot(b.x-cx,b.y-cy)<reachR*.55+R){blockBall(o,sh,'BLOCKED!',cx,cy);return true}
+  /* a block: the hand circle hits a ball that is still rising. The hand is only live while the defender is going up or at the top of his jump,
+     so a short defender has to jump early, near the release, to get a hand up to a taller shooter's ball */
+  if(!s.dunk&&!s.ft&&!s.sure&&!s.rimTouched&&b.vy<0&&o.y<FLOOR-6&&o.vy<=50){
+    const hb=handBox(o);
+    if(Math.hypot(b.x-hb.x,b.y-hb.y)<hb.r*.8+R*.7){
+      /* a bullseye: the ball's path passes within 5px of the hand's center, at the top of the jump */
+      const rx=hb.x-b.x,ry=hb.y-b.y,vx=b.vx-o.vx,vy=b.vy-o.vy,sp=Math.hypot(vx,vy)||1;
+      const dmin=(rx*vx+ry*vy)>0?Math.abs(rx*vy-ry*vx)/sp:Math.hypot(rx,ry);
+      blockBall(o,sh,'BLOCKED!',hb.x,hb.y,dmin<5&&Math.abs(o.vy)<160);
+      return true;
+    }
   }
   /* goaltending: a defender touches a shot while it is inside the rim's cylinder, coming down or bouncing on the rim there.
      Once the ball has bounced out of the cylinder, touching it is a rebound, not a goaltend. */
   const inCyl=Math.abs(b.x-hs.x)<RIMH+R&&b.y<RIMY+NET_DEPTH;
   if(inCyl)s.inCyl=true;else if(s.inCyl)s.leftCyl=true;
   if(!s.dunk&&!s.ft&&!s.air&&!s.gt&&!s.leftCyl&&inCyl&&(b.vy>0||s.rimTouched)&&o.y<FLOOR-30){
-    const cx=o.x+o.face*6,cy=o.y-100;
-    const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
-    if(Math.hypot(b.x-cx,b.y-cy)<reachR+R){
-      s.gt=true;st.banner={text:'GOALTENDING',col:'#ffd166',t:0};msg('GOALTENDING',b.x,b.y-40,'#ffd166');sfx('block');
+    const hb=handBox(o),cx=hb.x;
+    if(Math.hypot(b.x-hb.x,b.y-hb.y)<hb.r+R){
+      s.gt=true;st.banner={text:'GOALTENDING',col:'#ffd166',t:0};msg('GOALTENDING',b.x,b.y-40,'#ffd166');sfxWhistle();
       b.vx=(b.x>=cx?1:-1)*150;b.vy=-Math.abs(b.vy)*.3-60;b.noPick={p:o,t:.25};
       scoreShot(s);
       return true;
@@ -1115,6 +1263,7 @@ function stepBall(dt,live){
 function updateBall(dt,live){
   const b=st.ball;b.t+=dt;
   if(b.noPick){b.noPick.t-=dt;if(b.noPick.t<=0)b.noPick=null}
+  if(b.pickCd>0)b.pickCd-=dt;
   if(b.state==='idle')return;
   if(b.state==='held'){
     const p=b.owner;
@@ -1136,6 +1285,8 @@ function updateBall(dt,live){
     b.vx=0;b.vy=0;return;
   }
   for(let k=0;k<SUB;k++){if(b.state==='held'||b.state==='idle')break;if(stepBall(dt/SUB,live))break}
+  /* a faint motion trail behind a three-pointer */
+  if(b.shot&&b.shot.pts===3&&b.state==='air'&&!b.shot.scored)emit({x:b.x,y:b.y,vx:0,vy:0,life:.32,size:R*.75,col:WHITEP,a0:.4,shrink:true,add:true});
   if(b.y>FLOOR-R){
     b.y=FLOOR-R;
     if(b.vy>140){b.vy=-b.vy*.6;sfx('bounce')}else b.vy=0;
@@ -1143,7 +1294,7 @@ function updateBall(dt,live){
     if(b.state==='air')b.state='loose';
     if(b.shot&&!b.shot.scored){shotMiss(b.shot);b.shot=null}
   }
-  if(b.state==='loose'&&live){
+  if(b.state==='loose'&&live&&!(b.pickCd>0)){
     for(const p of st.p){
       if(b.noPick&&b.noPick.p===p)continue;
       if(p.dunking)continue;
@@ -1173,6 +1324,7 @@ function celebrateScore(s,p){
 function scoreShot(s){
   const p=s.by,h=hoops[p.atk];
   s.scored=true;p.score+=s.pts;p.stat.fgm++;
+  if(!s.rimTouched&&!s.dunk&&!s.gt)swishPuff(h.x,RIMY+26);
   if(s.foul&&!s.ft)st.ftPending={p,n:1};
   if(s.ft&&st.ft)st.ft.left--;
   tkGain(p,s.dunk?'dunk':s.pts===3?'three':'two');
@@ -1269,12 +1421,16 @@ function updatePlayers(dt,act){
 }
 function update(dt){
   if(!st||st.paused||st.phase==='over')return;
+  /* hit-stop: a block freezes the game for a few frames */
+  if(st.hitstop>0){st.hitstop=Math.max(0,st.hitstop-dt);return}
   crowdUpdate(dt);
   for(const m of st.msgs)m.t+=dt;
   st.msgs=st.msgs.filter(m=>m.t<1.1);
   st.trail.forEach(t=>t.t+=dt);st.trail=st.trail.filter(t=>t.t<.35);
   st.shake=Math.max(0,st.shake-dt);
   st.flash=Math.max(0,st.flash-dt*2.2);
+  if(st.edge){st.edge.t-=dt;if(st.edge.t<=0)st.edge=null}
+  for(const p of st.p)if(p.tkOn){p._fa=(p._fa||0)+dt*40;while(p._fa>=1){p._fa-=1;emitFlame(p)}}
   if(st.banner){st.banner.t+=dt;if(st.banner.t>1.7)st.banner=null}
   if(st.phase==='count'){
     st.pt-=dt;updatePlayers(dt,false);updateBall(dt,false);
@@ -1680,7 +1836,20 @@ function kitOf(p){
   if(l)return KITS[l][p.ch.alt?'alt':'home'];
   return {jersey:p.ch.col,trim:null,num:null,short:'#17212b',stripe:null};
 }
+/* a subtle floor indicator under the shooter: green (open), yellow (light contest), red (heavy / smothered) */
+function drawContestRing(p){
+  let cp=null,al=0;
+  if(p.meter&&p.meter.cp!==undefined&&!(st.ft&&st.ft.p===p)){cp=p.meter.cp;al=.55}
+  else if(p.cfx){cp=p.cfx.cp;al=.55*Math.min(1,p.cfx.t/.35)}
+  if(cp===null)return;
+  const col=cp<.15?'61,220,132':cp<.4?'242,201,44':'239,79,72';
+  ctx.save();
+  ctx.fillStyle='rgba('+col+','+(al*.45)+')';ctx.strokeStyle='rgba('+col+','+al+')';ctx.lineWidth=1.5;
+  ctx.beginPath();ctx.ellipse(p.x,FLOOR+4,26,6.5,0,0,7);ctx.fill();ctx.stroke();
+  ctx.restore();
+}
 function drawPlayer(p){
+  if(!p._ghost)drawContestRing(p);
   /* a dash leaves a ghost of the player trailing behind */
   if(p.dash>0&&!p._ghost){const g=Object.create(p);g._ghost=true;g.x=p.x-p.dashDir*30;ctx.save();ctx.globalAlpha=.25;drawPlayer(g);ctx.restore()}
   const x=p.x,y=p.y,f=p.face,sc=p.ch.sc||1,pz=smoothPose(p);
@@ -1691,8 +1860,13 @@ function drawPlayer(p){
   const sh=Math.max(.35,1-(FLOOR-y)/260);
   ctx.fillStyle='rgba(0,0,0,.25)';ctx.beginPath();ctx.ellipse(x,FLOOR+6,22*sh,6*sh,0,0,7);ctx.fill();
   if(p.tkOn){
-    const gr=ctx.createRadialGradient(x,y-40,6,x,y-40,54);gr.addColorStop(0,p.ch.col+'77');gr.addColorStop(1,p.ch.col+'00');
-    ctx.fillStyle=gr;ctx.beginPath();ctx.arc(x,y-40,54+Math.sin(performance.now()/120)*3,0,7);ctx.fill();
+    /* a pulsing energy ring under the feet, in the jersey color */
+    const jc=jcol(kit.jersey),pl=.5+.5*Math.sin(performance.now()/160);
+    ctx.save();
+    ctx.fillStyle='rgba('+jc+','+(.12+.1*pl)+')';ctx.strokeStyle='rgba('+jc+','+(.55+.35*pl)+')';ctx.lineWidth=2.2;
+    ctx.beginPath();ctx.ellipse(x,FLOOR+5,30+6*pl,8+1.5*pl,0,0,7);ctx.fill();ctx.stroke();
+    ctx.lineWidth=1.4;ctx.beginPath();ctx.ellipse(x,FLOOR+5,18+4*pl,4.6+pl,0,0,7);ctx.stroke();
+    ctx.restore();
   }
   if(p.stun>0&&!p.fall){ctx.translate(Math.sin(performance.now()/40)*2,0);ctx.globalAlpha=.7}
   ctx.translate(x+(pz.dx||0),y+(pz.dy||0));
@@ -1811,9 +1985,15 @@ function draw(){
   if(!st)return;
   st.p.forEach(drawPlayer);
   drawBall();
+  drawParts();
   drawVignette();
   drawBloom();
   ctx.setTransform(dpr,0,0,dpr,0,0);
+  if(st.edge){
+    const k=st.edge.t/st.edge.dur,eg=ctx.createRadialGradient(W/2,H/2,H*.32,W/2,H/2,W*.62);
+    eg.addColorStop(0,'rgba('+st.edge.col+',0)');eg.addColorStop(1,'rgba('+st.edge.col+','+(.34*k)+')');
+    ctx.fillStyle=eg;ctx.fillRect(0,0,W,H);
+  }
   drawHUD();
   ctx.textAlign='center';
   for(const m of st.msgs){
@@ -2160,7 +2340,7 @@ document.getElementById('mute').addEventListener('click',e=>{muted=!muted;e.curr
 let last=0;
 function frame(ts){
   const dt=Math.min(.033,(ts-last)/1000||0);last=ts;
-  update(dt);hoopPhysics(dt);crowdAudio();draw();
+  update(dt);hoopPhysics(dt);if(!st||!st.paused)updateParts(dt);crowdAudio();draw();
   requestAnimationFrame(frame);
 }
 homeScreen();
