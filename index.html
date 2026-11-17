@@ -168,8 +168,8 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 <script>
 (()=>{
 'use strict';
-const W=800,H=450,FLOOR=372,G=1500,PG=1350,RIMY=166,RIMH=23,R=11,MATCH=90,OT=45;
-const hoops=[{x:84,bx:54,s:-1},{x:716,bx:746,s:1}];
+const W=800,H=450,FLOOR=372,G=1200,PG=1350,RIMY=166,RIMH=23,R=11,MATCH=90,OT=30;
+const hoops=[{x:84,bx:54,s:-1,nOff:0,nV:0,rOff:0,rV:0},{x:716,bx:746,s:1,nOff:0,nV:0,rOff:0,rV:0}];
 /* Kits use team colors and the number only; no logos or team names. */
 const KITS={
   jordan:{home:{jersey:'#c8102e',trim:'#15161b',num:'#ffffff',short:'#15161b',stripe:'#c8102e'},
@@ -188,6 +188,8 @@ Object.assign(KITS,{
   mitchell:teamKit('#860038','#fdbb30'),mobley:teamKit('#860038','#fdbb30'),
   kyrie:teamKit('#00538c','#b8c4ca'),flagg:teamKit('#00538c','#b8c4ca')
 });
+Object.assign(KITS,{maxey:teamKit('#006bb6','#ed174c'),brown:teamKit('#006bb6','#ed174c'),duren:teamKit('#c8102e','#1d42ba'),cade:teamKit('#c8102e','#1d42ba'),ad:teamKit('#002b5c','#e31837'),trae:teamKit('#002b5c','#e31837')});
+Object.assign(KITS,{avdija:teamKit('#e03a3e','#000000'),lillard:teamKit('#e03a3e','#000000'),edwards:teamKit('#0c2340','#78be20'),lamelo:teamKit('#0c2340','#78be20'),jokic:teamKit('#0e2240','#fec524'),murray:teamKit('#0e2240','#fec524'),wemby:teamKit('#c4ced4','#000000'),castle:teamKit('#c4ced4','#000000')});
 const TEAMS=[
   {id:'GOAT',name:'The GOATs',col:'#ffd166'},
   {id:'Hall of Fame',name:'Hall of Fame',col:'#e8e2c9'},
@@ -196,7 +198,14 @@ const TEAMS=[
   {id:'Cavs',name:'Cavs',col:'#fdbb30'},
   {id:'Mavs',name:'Mavs',col:'#4aa3df'},
   {id:'Lakers',name:'Lakers',col:'#8f6bd6'},
-  {id:'Thunder',name:'OKC Thunder',col:'#3fa9f5'}
+  {id:'Thunder',name:'OKC Thunder',col:'#3fa9f5'},
+  {id:'76ers',name:'76ers',col:'#ed174c'},
+  {id:'Pistons',name:'Pistons',col:'#e8553c'},
+  {id:'Wizards',name:'Wizards',col:'#e31837'},
+  {id:'Trail Blazers',name:'Trail Blazers',col:'#e03a3e'},
+  {id:'Timberwolves',name:'Timberwolves',col:'#4fa3e0'},
+  {id:'Nuggets',name:'Nuggets',col:'#fec524'},
+  {id:'Spurs',name:'Spurs',col:'#c4ced4'}
 ];
 /* deep: three-point window, fin: layup window, dunk: dunk frequency, stl: steal success, dcd: dash cooldown, blkW: seconds a shot can be blocked, sec: ball security */
 const CH=[
@@ -247,7 +256,49 @@ const CH=[
     tag:'Guard \u00b7 the slasher',up:'Elite mid-range and finishing, strong hands, hard to stop',down:'Not a dunker, average from three'},
   {name:'Chet Holmgren',look:'chet',team:'Thunder',number:'7',col:'#ff6a3d',skin:'#a87650',skin2:'#8c6040',spd:164,jump:585,zone:1.1,reach:54,deep:1.15,fin:1.2,dunk:1.1,stl:.6,dcd:1.4,blkW:.5,sec:-.2,
     tk:{name:'UNICORN',desc:'huge blocks and a deep window, hard to stop',deep:1.2,blk:.3,reach:16,fin:1.2,spd:1.05},tkm:{blk:1.6,three:1.2,dunk:1.2},
-    tag:'Center \u00b7 the unicorn',up:'Seven-footer with range: elite rim protector who shoots threes',down:'Skinny: easy to strip and bump off the ball'}
+    tag:'Center \u00b7 the unicorn',up:'Seven-footer with range: elite rim protector who shoots threes',down:'Skinny: easy to strip and bump off the ball'},
+  {name:'Tyrese Maxey',look:'maxey',team:'76ers',number:'0',col:'#7fb8ff',skin:'#8d5a3b',skin2:'#74482f',spd:188,jump:540,zone:1.15,reach:30,deep:1.2,fin:1.05,dunk:.4,stl:.7,dcd:1,blkW:.2,sec:.3,
+    tk:{name:'CLUTCH TIME',desc:'deep range, fast dash, shoots through contests',deep:1.2,spd:1.05,cont:.5,dcd:.6},tkm:{three:1.3,green:1.2},
+    tag:'Guard \u00b7 the closer',up:'Quick first step, deep range, tough through contact',down:'Undersized at the rim',sc:.95,face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  {name:'Jaylen Brown',look:'brown',team:'76ers',number:'7',col:'#ff7f9a',skin:'#6f4430',skin2:'#583522',spd:180,jump:575,zone:1.05,reach:40,deep:.95,fin:1.2,dunk:1.2,stl:.75,dcd:1.3,blkW:.33,sec:.15,
+    tk:{name:'ISO MODE',desc:'bullies to the rim, deadly mid-range, hard to strip',spd:1.05,mid:1.25,fin:1.2,sec:.3},tkm:{two:1.2,dunk:1.2},
+    tag:'Wing \u00b7 the bully',up:'Powerful finisher, strong handle, hard to strip',down:'Inconsistent from deep',sc:1.03,face:{hair:'#17110d',style:'fade'}},
+  {name:'Jalen Duren',look:'duren',team:'Pistons',number:'9',col:'#ff6b57',skin:'#7b4b33',skin2:'#633b27',spd:150,jump:585,zone:.95,reach:52,deep:.1,fin:1.4,dunk:1.6,stl:.55,dcd:1.6,blkW:.5,sec:.4,
+    tk:{name:'ROLL MAN',desc:'lobs and putbacks, huge dunks, monster blocks',fin:1.3,dunk:1.5,blk:.3,reach:16},tkm:{dunk:1.4,blk:1.3},
+    tag:'Center \u00b7 the rim runner',up:'Explosive finisher, huge dunks, rim protector',down:'Slow, no jumper',sc:1.1,face:{hair:'#17110d',style:'short'}},
+  {name:'Cade Cunningham',look:'cade',team:'Pistons',number:'2',col:'#3b6cff',skin:'#a06b48',skin2:'#82553a',spd:184,jump:555,zone:1.2,reach:34,deep:1.1,fin:1.05,dunk:.3,stl:.7,dcd:1.1,blkW:.2,sec:.3,
+    tk:{name:'PLAYMAKER',desc:'quicker dash, deep range, tough to strip',deep:1.15,dcd:.7,sec:.3,spd:1.05},tkm:{three:1.2,green:1.2},
+    tag:'Point guard \u00b7 the floor general',up:'Big guard size, smart handles, tough to strip',down:'Rarely dunks, average at the rim',sc:1.05,face:{hair:'#17110d',style:'short'}},
+  {name:'Anthony Davis',look:'ad',team:'Wizards',number:'3',col:'#8fb8ff',skin:'#8a5a3c',skin2:'#704730',spd:170,jump:575,zone:1,reach:52,deep:.25,fin:1.3,dunk:1.3,stl:.75,dcd:1.3,blkW:.5,sec:.15,
+    tk:{name:'UNGUARDABLE',desc:'rim blocks, feathery mid-range, dunks off the lob',fin:1.3,blk:.3,reach:14,mid:1.15},tkm:{blk:1.4,dunk:1.3},
+    tag:'Big \u00b7 the two-way star',up:'Long wingspan, elite shot blocker, finishes everywhere',down:'Shaky from three',sc:1.06,face:{hair:'#17110d',style:'short'}},
+  {name:'Trae Young',look:'trae',team:'Wizards',number:'11',col:'#f04a5e',skin:'#c08a62',skin2:'#a06f4c',spd:180,jump:530,zone:1.15,reach:28,deep:1.45,fin:.9,dunk:.15,stl:.55,dcd:.9,blkW:.15,sec:.1,
+    tk:{name:'SHOOTER BALL',desc:'huge deep window, shoots through contests, quick dash',deep:1.25,cont:.5,dcd:.6,mid:1.15},tkm:{three:1.3,green:1.4,stl:.8},
+    tag:'Point guard \u00b7 the deep shooter',up:'Elite range, deadly pull-ups, quick dash',down:'Small at the rim, weak defender',sc:.92,face:{hair:'#2a1b12',style:'fade'}},
+  {name:'Deni Avdija',look:'avdija',team:'Trail Blazers',number:'9',col:'#ff8a8a',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:570,zone:1.1,reach:42,deep:.9,fin:1.15,dunk:.8,stl:.85,dcd:1.3,blkW:.4,sec:.1,
+    tk:{name:'TWO-WAY',desc:'steals and blocks, quicker dash',spd:1.05,stl:.15,blk:.2},tkm:{stl:1.3,blk:1.3},
+    tag:'Forward \u00b7 the versatile wing',up:'Quick hands, active defender, scores at every level',down:'No single skill is elite',sc:1.02,face:{hair:'#17110d',style:'short'}},
+  {name:'Damian Lillard',look:'lillard',team:'Trail Blazers',number:'0',col:'#ffc2b8',skin:'#8d5a3b',skin2:'#74482f',spd:182,jump:530,zone:1.2,reach:30,deep:1.5,fin:.95,dunk:.2,stl:.6,dcd:1,blkW:.15,sec:.2,
+    tk:{name:'DEEP BALL',desc:'deep range, shoots through contests, quick dash',deep:1.2,cont:.5,dcd:.6},tkm:{three:1.3,green:1.4},
+    tag:'Guard \u00b7 the sniper',up:'Elite range, cold-blooded in clutch, quick handles',down:'Slow to the rim, weak defender',sc:.95,face:{hair:'#17110d',style:'fade',beard:'stubble'}},
+  {name:'Anthony Edwards',look:'edwards',team:'Timberwolves',number:'5',col:'#4fa3e0',skin:'#7b4b33',skin2:'#633b27',spd:186,jump:585,zone:1.15,reach:40,deep:1,fin:1.15,dunk:1.25,stl:.7,dcd:1.2,blkW:.3,sec:.1,
+    tk:{name:'ANT MODE',desc:'explosive drives, huge dunks, fast dash',spd:1.06,dunk:1.3,fin:1.2},tkm:{dunk:1.3,two:1.1},
+    tag:'Guard \u00b7 the explosive scorer',up:'Explosive leaper, drives through contact, lethal in transition',down:'Streaky from three',sc:1.02,face:{hair:'#17110d',style:'fade'}},
+  {name:'LaMelo Ball',look:'lamelo',team:'Timberwolves',number:'1',col:'#2ed1d6',skin:'#c08a62',skin2:'#a06f4c',spd:186,jump:540,zone:1.15,reach:33,deep:1.25,fin:1,dunk:.5,stl:.7,dcd:1.2,blkW:.2,sec:.15,
+    tk:{name:'LAMELO SHOW',desc:'deep range, quick dash, steals',deep:1.2,spd:1.05,stl:.15},tkm:{three:1.3,stl:1.1},
+    tag:'Point guard \u00b7 the showman',up:'Long-range shooter, quick handles, passes in traffic',down:'Undersized defender, weak at the rim',sc:.95,face:{hair:'#17110d',style:'short'}},
+  {name:'Nikola Jokić',look:'jokic',team:'Nuggets',number:'15',col:'#fec524',skin:'#8d5b3b',skin2:'#74482f',spd:140,jump:500,zone:1.1,reach:46,deep:.6,fin:1.2,dunk:.4,stl:.45,dcd:1.5,blkW:.3,sec:.35,
+    tk:{name:'TRIPLE-DOUBLE',desc:'vision, soft touch, deadly mid-range',mid:1.2,sec:.2,fin:1.15},tkm:{two:1.2,green:1.2},
+    tag:'Center \u00b7 the maestro',up:'Elite passer, soft touch, impossible to bump off the block',down:'Slow, limited athleticism',sc:1.1,face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  {name:'Jamal Murray',look:'murray',team:'Nuggets',number:'27',col:'#ffe08a',skin:'#6f4430',skin2:'#583522',spd:184,jump:555,zone:1.15,reach:32,deep:1.25,fin:1.05,dunk:.4,stl:.65,dcd:1.2,blkW:.2,sec:.25,
+    tk:{name:'MURRAY TIME',desc:'deep window, shoots through contests, quick dash',deep:1.2,cont:.5,dcd:.7},tkm:{three:1.2,green:1.2},
+    tag:'Guard \u00b7 the streak shooter',up:'Clutch shooter, quick first step, tough through contact',down:'Average on defense, inconsistent',sc:.97,face:{hair:'#17110d',style:'fade'}},
+  {name:'Victor Wembanyama',look:'wemby',team:'Spurs',number:'1',col:'#c4ced4',skin:'#8d6240',skin2:'#74502f',spd:164,jump:610,zone:1.1,reach:60,deep:.85,fin:1.1,dunk:1.1,stl:.5,dcd:1.3,blkW:.6,sec:-.1,
+    tk:{name:'UNICORN',desc:'huge blocks, long reach, shoots from outside',blk:.3,reach:16,mid:1.15},tkm:{blk:1.6,three:1.2},
+    tag:'Center \u00b7 the unicorn',up:'Seven-footer with range, elite shot blocker',down:'Still thin, easy to bump off the ball',sc:1.15,face:{hair:'#17110d',style:'fade'}},
+  {name:'Stephon Castle',look:'castle',team:'Spurs',number:'5',col:'#8c96a0',skin:'#5c3a28',skin2:'#4a2d1e',spd:183,jump:540,zone:1.1,reach:36,deep:.8,fin:1.1,dunk:.6,stl:.85,dcd:1.2,blkW:.25,sec:.2,
+    tk:{name:'LOCKDOWN',desc:'steals and quick hands, bulldozes to the rim',stl:.15,fin:1.15,sec:.3},tkm:{stl:1.3,two:1.1},
+    tag:'Guard \u00b7 the lockdown',up:'Elite on-ball defender, strong finisher, quick hands',down:'Shaky shooter, not yet a threat from deep',sc:1.02,face:{hair:'#17110d',style:'short'}}
 ];
 /* Looks, build and numbers for the newer players. face: hair color/style, beard, extras. sc: body size (1 = average). */
 const EXTRA={
@@ -318,6 +369,49 @@ function sfxGreen(){
         o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+len+.1);
       }
     }
+  }catch(e){}
+}
+/* procedural sound: Web Audio only, no sample files */
+function audioNow(){ac=ac||new (window.AudioContext||window.webkitAudioContext)();if(ac.state==='suspended')ac.resume();return ac.currentTime}
+function pitchTone(t,f0,f1,dur,type,vol){
+  const o=ac.createOscillator(),g=ac.createGain();
+  o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+.02);
+}
+function noiseBurst(t,dur,type,f0,f1,Q,vol){
+  const len=Math.floor(ac.sampleRate*dur),buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
+  for(let i=0;i<len;i++)d[i]=(Math.random()*2-1)*(1-i/len);
+  const src=ac.createBufferSource();src.buffer=buf;
+  const fl=ac.createBiquadFilter();fl.type=type;fl.Q.value=Q;
+  fl.frequency.setValueAtTime(f0,t);fl.frequency.exponentialRampToValueAtTime(f1,t+dur);
+  const g=ac.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
+  src.connect(fl);fl.connect(g);g.connect(ac.destination);src.start(t);
+}
+/* a rim clank (louder and higher on a hard hit) or a backboard thud, scaled by the impact speed */
+function sfxImpact(kind,speed){
+  if(muted)return;
+  try{
+    const t=audioNow(),k=clamp(speed/400,.12,1.4);
+    if(kind==='rim'){
+      const hi=900+700*k;
+      pitchTone(t,hi,hi*.84,.22,'square',.03*k);
+      pitchTone(t,hi*1.52,hi*1.38,.14,'triangle',.022*k);
+      pitchTone(t,hi*2.37,hi*2.2,.09,'sine',.016*k);
+      noiseBurst(t,.03,'highpass',2000,3000,.7,.12*k);
+    }else{
+      pitchTone(t,96,50,.2,'sine',.2*k);
+      noiseBurst(t,.07,'lowpass',420,160,.8,.12*k);
+    }
+  }catch(e){}
+}
+/* a clean swish through the net, louder with a faster drop */
+function sfxSwish(speed){
+  if(muted)return;
+  try{
+    const t=audioNow(),k=clamp(speed/500,.2,1.2);
+    noiseBurst(t,.32,'bandpass',4200,6500,.9,.05*k);
+    noiseBurst(t+.05,.26,'bandpass',2600,1800,1.1,.04*k);
   }catch(e){}
 }
 let crowd=null;
@@ -437,7 +531,7 @@ const NAMES={layup:'LAYUP',fingerroll:'FINGER ROLL',scoop:'SCOOP',floater:'FLOAT
   dametime:'DAME TIME',shrug:'THE SHRUG',chestpound:'CHEST POUND',wag:'NOT IN MY HOUSE',hush:'HUSH',bow:'BOW & ARROW',poster:'POSTER!',posterblock:'POSTERIZED OVER THE BLOCK',snatchblock:'SNATCH BLOCK'};
 const RARE=new Set(['upunder','doubleclutch','behindback','harden','kyrie','bbdash','onelegfade','betweenlegs','threesixty','jordan','honeydip','nightnight','dametime','shrug','bow','hush','poster','posterblock','snatchblock']);
 const BANNER=new Set();
-const LAYUPS=[['layup',26],['fingerroll',18],['scoop',16],['floater',12],['eurostep',12],['reverse',8],['spinlay',6],['upunder',2],['doubleclutch',2],['behindback',1.5]];
+const LAYUPS=[['layup',26],['fingerroll',18],['scoop',16],['floater',12],['eurostep',12],['reverse',8],['spinlay',6],['upunder',4],['doubleclutch',4],['behindback',1.5]];
 const STEPBACKS=[['stepback',50],['hopback',22],['crossback',18],['harden',6],['kyrie',4]];
 const DASHMOVES=[['spin',35],['crossover',35],['hesi',24],['bbdash',6]];
 const CLOSE_DUNKS=[['tomahawk',30],['twohand',28],['windmill',20],['reverse',12],['betweenlegs',5],['threesixty',5]];
@@ -485,7 +579,11 @@ function shotMiss(s){
   if(!s||s.scored||s.mdone||s.dunk)return;
   s.mdone=true;st.missBy=s.by;tkGain(s.by,s.air?'air':'miss');
   if(s.foul&&!s.ft){st.ftPending={p:s.by,n:s.pts===3?3:2};st.phase='goal';st.pt=1.2}
-  if(s.ft&&st.ft){st.ft.left--;if(st.ft.left>0){st.phase='goal';st.pt=1}else st.ft=null}
+  if(s.ft&&st.ft){st.ft.left--;if(st.ft.left>0){st.phase='goal';st.pt=1}else{
+    /* the last free throw stays live, but the ball is knocked toward the other player and the shooter is kept off it for a moment, so a rebound is rare */
+    st.ft=null;const bl=st.ball,sh=s.by,o=st.p[1-sh.idx];
+    bl.noPick={p:sh,t:1.6};bl.vx=(o.x>=sh.x?1:-1)*200;bl.vy=-150;
+  }}
 }
 function newPlayer(idx,ch){
   return {idx,atk:idx===0?1:0,ad:idx===0?1:-1,ch,x:0,y:FLOOR,vx:0,vy:0,face:idx===0?1:-1,
@@ -514,7 +612,7 @@ function shotWin(p,o){
 }
 function layupNow(p){
   const dist=Math.abs(p.x-hoops[p.atk].x);
-  return dist<=205&&p.vx*p.ad>105&&!(p.y<FLOOR-10&&dist<100);
+  return dist<=240&&p.vx*p.ad>90&&!(p.y<FLOOR-10&&dist<100);
 }
 /* Meter tiers as fractions of jump speed away from the apex: green (sure make), yellow (coin flip, front-rim brick),
    orange (long shot, barely clips the rim), red (airball). Everything scales with distance, defender and layup. */
@@ -533,7 +631,7 @@ function give(p){
 function freshAI(){return {spot:0,jumped:false,think:0,tgtU:undefined,side:true,drive:false,bit:false}}
 function resetPositions(to){
   const [a,c]=st.p;
-  const inb=q=>{const h=hoops[q.idx];return h.bx+h.s*22};
+  const inb=q=>{const h=hoops[q.idx];return h.bx-h.s*22};
   const oth=st.p[1-to.idx];
   to.x=inb(to);oth.x=to.idx===0?460:340;
   for(const p of st.p){
@@ -595,7 +693,7 @@ function stepPlayer(p,o,inp,dt,act){
     else if(o.fakeT>0&&Math.abs(o.x-p.x)<140&&p.dash<=0)p.bit=true;
   }
   if(p.push){p.push.t-=dt;p.vx=p.push.vx;if(p.push.t<=0)p.push=null}
-  p.x=clamp(p.x+p.vx*dt,26,W-26);
+  p.x=clamp(p.x+p.vx*dt,68,732);
   p.vy+=PG*dt;p.y+=p.vy*dt;
   let landed=false;
   if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;if(airBefore)landed=true}
@@ -687,6 +785,35 @@ function releaseShot(p,o){
   launch(p,{layup:false,u,sgn,anim:an});
 }
 const gauss=()=>Math.sqrt(-2*Math.log(Math.random()+1e-9))*Math.cos(2*Math.PI*Math.random());
+/* Where the ball is aimed on the rim. The release tier and the shot type decide it, and the solve in launch() turns that target into a velocity.
+   Greens: swishes at the center, or touches the rim edge and drops in (steering guarantees the make). Layups mostly go off the glass or touch the rim, rarely swish.
+   Yellow and orange: always touch the rim edge (front iron if early, back iron if late). Red: airball just outside the rim. */
+const YEL_K=()=>.7+Math.random()*.45,ORG_K=()=>.9+Math.random()*.45;
+/* Where the ball is aimed on the rim or glass. The release tier and shot type decide it, and the solve in launch() turns that target into a velocity.
+   Greens: swish, or touch the rim edge and drop in (steering guarantees the make). Layups: go off the glass or touch the rim; yellow and orange layups always touch something.
+   Red layups hit the front rim and bounce out. Jumpers: yellow/orange touch the rim edge, red airballs just short of it.
+   Whether a layup goes in is decided in launch() (c.lo), not by where it is aimed. */
+function shotAim(p,h,c,tier,bank,side,hiArc){
+  const dir=c.sgn<0?side:-side;
+  const edge=(k,d)=>({x:h.x+d*RIMH*k,y:RIMY+6});
+  const glass={x:h.bx-h.s*R,y:RIMY-18};
+  if(c.layup){
+    const r=Math.random();
+    if(tier==='green'){
+      if(r<.5)return glass;
+      if(r<.65)return {x:h.x,y:RIMY+6};
+      return edge(.9,dir);
+    }
+    if(tier==='red')return edge(1,side);
+    return r<.5?glass:edge(.9,dir);
+  }
+  if(tier==='green')return {x:h.x,y:RIMY+6};
+  if(bank)return glass;
+  const k=tier==='yellow'?YEL_K():tier==='orange'?ORG_K():2.1;
+  /* a high arc comes down steeply, so half of those are aimed at the back iron and can clear the front rim */
+  const far=hiArc&&Math.random()<.5;
+  return {x:h.x+(far?-dir:(tier==='red'?side:dir))*RIMH*k,y:RIMY+6};
+}
 function launch(p,c){
   const spec=ANIMS[c.anim||'jumper'];
   if(!c.keepAnim&&spec.rel){
@@ -706,31 +833,55 @@ function launch(p,c){
   const label={green:'GREEN',yellow:pre+'CLOSE · '+when,orange:pre+'OFF · '+when,red:pre+'WAY OFF · '+when}[tier];
   const col={green:'#3ddc84',yellow:'#f2c92c',orange:'#f08a24',red:'#ef4f48'}[tier];
   if(tier==='green'){tkGain(p,'green');sfxGreen()}
-  if(t.cm<.85)msg('CONTESTED',p.x,p.y-142,'#ffb347');
+  if(t.cm<.85)msg('CONTESTED '+Math.round((1-t.cm)*100)+'%',p.x,p.y-142,'#ffb347');
   const n=clamp(c.u/Math.max(t.o,.02),0,3);
   const sx=p.x+p.face*10,sy=p.y-(c.layup?84:66);
-  /* layups use a higher arc so the ball drops onto the rim instead of skimming its front edge */
-  const T=(c.layup?.75+dist/2000:.72+dist/1500)+(c.anim==='floater'?.14:0);
+  /* half of the yellow/orange jumpers are aimed at the back iron */
+  const hiArc=!c.layup&&(tier==='yellow'||tier==='orange')&&Math.random()<.5;
   /* some jumpers are aimed off the backboard (bank shots) */
-  const bank=!c.layup&&dist>110&&Math.random()<.3;
-  let aimX=bank?h.bx-h.s*R:h.x;const aimY=bank?RIMY-22:RIMY+6;
-  /* a layup that is not green is aimed at the near edge of the rim, so it hits the rim and rolls in or out */
-  if(c.layup&&tier!=='green')aimX=h.x+Math.sign(p.x-h.x)*RIMH*.9;
+  /* bank shots are rare and only come off the post: a jumper from the block with a defender on the shooter, and never a green */
+  const post=!c.layup&&dist>=100&&dist<=190&&Math.abs(o.x-p.x)<90;
+  const bank=post&&tier!=='green'&&Math.random()<.22;
+  /* Ballistic solve: the release point (sx,sy) and a target on the rim are known, and the flight time T is fixed.
+     Gravity then gives the exact launch velocity: vx=(tx-sx)/T, vy=(ty-sy)/T-g*T/2.
+     The target is chosen by the release: a green aims at the middle of the rim, an early release (short) aims at the
+     front iron, a late release (long) aims at the back iron. How far the target sits from the rim center grows with the tier. */
+  const side=Math.sign(p.x-h.x)||1;
+  /* a layup's make is decided here: green always, yellow and orange sometimes, red never. Where it touches is up to the aim. */
+  const LAYUP_IN={yellow:.75,orange:.5,red:0};
+  c.lo=c.layup&&tier!=='green'?(Math.random()<LAYUP_IN[tier]*(1-.9*(1-t.cm))?'in':'out'):undefined;
+  const aim=shotAim(p,h,c,tier,bank,side,hiArc);
+  let aimX=aim.x;let aimY=aim.y;
   /* free throws: green swishes in; yellow and orange hit the front of the rim and may roll in; red mostly hits the rim and sometimes airballs */
   if(st.ft&&st.ft.p===p&&tier!=='green'){const sg=Math.sign(p.x-h.x)||1;aimX=(tier==='red')?(Math.random()<.08?h.x+sg*(RIMH+70):h.x+sg*(RIMH+2)):h.x+sg*RIMH*.95}
   let ne=n*1.4,S=1.3*(15+80*ne*ne)*(1+.5*(1-t.cm))*(1+dist/450)/Math.sqrt(p.ch.zone||1);
   /* a green release is a sure make: aimed at the middle of the rim with much less error (every layup, almost every jumper) */
   const ftShot=!!(st.ft&&st.ft.p===p);
-  const sure=tier==='green'&&(c.layup||ftShot||Math.random()<.9);
-  if(sure)S*=.25;
+  /* every green is a make: it never rattles or rolls out, and it can't be blocked */
+  const sure=tier==='green';
+  /* a green is the exact solve with no injected error; misses get noise on top of the offset target */
+  if(sure)S=0;
   S=Math.min(S,240);
+  /* a red is a clean airball near the rim: its error is kept small so it can't drop in */
+  if(tier==='red')S=Math.min(S,6);
+  /* yellow and orange are aimed onto the rim edge with no random error, so they always touch it and never airball */
+  if(tier==='yellow'||tier==='orange')S=Math.min(S,16*(1+1.5*(1-t.cm)));
   /* free throws that aren't green are aimed tighter, so yellow reliably touches the rim */
   if(st.ft&&st.ft.p===p&&tier!=='green')S=Math.min(S,tier==='red'?8:6);
+  if((tier==='yellow'||tier==='orange')&&!c.layup)aimX+=(aimX>=h.x?1:-1)*RIMH*3*(1-t.cm);
   b.x=sx;b.y=sy;
-  b.vx=(aimX-sx)/T+gauss()*S;
-  b.vy=(aimY-sy)/T-.5*G*T+gauss()*S*.6;
+  /* spin: backspin on jumpers, topspin on layups */
+  b.w=c.layup?-1:1;
+  b.bbE=c.layup?LAYUP_BB_E:BB_E;
+  if(sure&&c.layup){const bank=solveBank(sx,sy,h);if(bank){aimX=bank.x;aimY=bank.y}}
+  /* every shot gets a real arc: the apex sets vy, the flight time follows from it, and vx covers the distance in that time.
+     Jumpers peak well above the rim; layups peak just above their glass target so the ball is dropping when it reaches it. */
+  const apexY=c.layup?aimY-25:Math.max(48,RIMY-118-dist*.02)+(Math.random()*12-6);
+  const av=arcVel(sx,sy,aimX,aimY,apexY);
+  b.vx=av.vx+gauss()*S;
+  b.vy=av.vy+gauss()*S*.6;
   b.state='air';b.owner=null;
-  b.shot={by:p,pts,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95,sure,ft:!!(st.ft&&st.ft.p===p)};b.noPick={p,t:.4};
+  b.shot={by:p,pts,tier,outcome:c.lo,cover:1-t.cm,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95,sure,ft:!!(st.ft&&st.ft.p===p),layup:!!c.layup,hits:0,hitsMax:c.layup?1+Math.floor(Math.random()*3):0,lastHit:-9};b.noPick={p,t:.4};
   p.has=false;
   if(!c.keepAnim){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm)}
   msg(label,p.x,p.y-120,col);sfx('tick');
@@ -823,7 +974,17 @@ function blockBall(o,sh,label,cx,cy){
   msg(label,b.x,b.y-30,'#ef4f48');sfx('block');
   if(Math.random()<.015){give(o);announce(o,'snatchblock');sfx('steal');return}
 }
-function touchRim(){
+/* the first time a yellow or orange touches the rim, it is decided whether it rolls in (scores) or bounces out. Nothing else is forced. */
+function rimDecide(){
+  const s=st.ball.shot,b=st.ball;
+  if(!s||s.sure||(s.tier!=='yellow'&&s.tier!=='orange'&&s.tier!=='red'))return;
+  /* contest raises the chance that a yellow or orange goes in */
+  const base={yellow:.6,orange:.4,red:0}[s.tier];
+  if(!s.outcome)s.outcome=Math.random()<base*(1-1.1*(s.cover||0))?'in':'out';
+  /* a bounce-out is knocked back toward the shooter, so it can't fall in off the far side of the rim */
+  if(s.outcome==='out'){const hx=hoops[s.by.atk].x;b.vx=Math.sign(s.by.x-hx||1)*Math.max(Math.abs(b.vx),140)}
+}
+function touchRim(speed,board){
   const b=st.ball,s=b.shot;
   if(s&&s.brick&&!s.kicked){
     /* a brick: the ball clanks off the rim or board and is thrown back toward the shooter */
@@ -831,7 +992,125 @@ function touchRim(){
     b.vx=-s.by.ad*(150+Math.random()*100);b.vy=-(260+Math.random()*140);
   }
   if(b.state==='air')b.state='loose';
-  sfx('rim');
+  if(board)sfxImpact('board',speed||200);else sfxImpact('rim',speed||200);
+}
+/* ---------- ball physics ----------
+   Sub-stepped and deterministic: no mid-air steering. A shot's path comes only from its launch velocity, and bounces off the
+   backboard and the two rim circles are real vector reflections with restitution, tangential friction and spin. */
+const SUB=8,BB_E=.65,LAYUP_BB_E=.35,RIM_E=.55,RIM_RAD=2;
+/* one rim circle: returns the approach speed when the ball hits it, else 0 */
+function rimCollide(b,cx,cy){
+  const dx=b.x-cx,dy=b.y-cy,d=Math.hypot(dx,dy),min=R+RIM_RAD;
+  if(d>=min||d<=0)return 0;
+  const nx=dx/d,ny=dy/d;
+  b.x=cx+nx*min;b.y=cy+ny*min;
+  const vn=b.vx*nx+b.vy*ny;
+  if(vn>=0)return 0;
+  /* tangential friction on the bounce, plus the spin grabbing the rim (backspin or topspin) */
+  const tx=-ny,ty=nx,vt=b.vx*tx+b.vy*ty,vt2=vt*.75+(b.w||0)*40;
+  b.vx=-RIM_E*vn*nx+vt2*tx;b.vy=-RIM_E*vn*ny+vt2*ty;
+  b.w=(b.w||0)*.85;
+  return -vn;
+}
+/* the backboard and both rim circles of one hoop. Pure motion: no sound, no scoring */
+function hoopContact(b,h){
+  let bb=0,rim=0;
+  if(h.s===1&&b.x+R>h.bx&&b.vx>0){const ia=b.vx;b.x=h.bx-R;b.vx=-b.vx*(b.bbE||BB_E);b.vy=b.vy*.94+(b.w||0)*25;bb=ia}
+  if(h.s===-1&&b.x-R<h.bx&&b.vx<0){const ia=-b.vx;b.x=h.bx+R;b.vx=-b.vx*(b.bbE||BB_E);b.vy=b.vy*.94+(b.w||0)*25;bb=ia}
+  for(const sx of [-1,1]){const v=rimCollide(b,h.x+sx*RIMH,RIMY);if(v>rim)rim=v}
+  return {bb,rim};
+}
+/* launch velocity from an apex: vy is set so the ball peaks at apexY, then the flight time down to the target height follows, and vx covers the distance in that time */
+function arcVel(sx,sy,ax,ay,apexY){
+  const rise=Math.max(sy-apexY,(sy-ay)+20),vy=-Math.sqrt(2*G*rise);
+  const T=(-vy+Math.sqrt(vy*vy+2*G*(ay-sy)))/G;
+  return {vx:(ax-sx)/T,vy,T};
+}
+/* runs the same motion on a copy of the ball, to solve layup banks. Returns the x offset from the rim center where it crosses the rim, or null */
+function simLaunch(sx,sy,vx,vy,h,w,bbE){
+  const b={x:sx,y:sy,vx,vy,w,bbE};const dt=1/60/SUB;
+  for(let i=0;i<60*4*SUB;i++){
+    const py=b.y;
+    b.vy+=G*dt;b.x+=b.vx*dt;b.y+=b.vy*dt;
+    hoopContact(b,h);
+    if(b.vy>0&&py<=RIMY&&b.y>RIMY)return b.x-h.x;
+    if(b.y>FLOOR)return null;
+  }
+  return null;
+}
+/* a green layup: find the glass point whose bounce drops the ball through the middle of the rim. Returns the aim, or null */
+function solveBank(sx,sy,h){
+  /* the target sits 18px above the rim against the inner face of the glass and the apex is 25px above it, so the ball is dropping as it kisses the glass */
+  const ay=RIMY-18;
+  const f=ax=>{const v=arcVel(sx,sy,ax,ay,ay-25);return simLaunch(sx,sy,v.vx,v.vy,h,-1,LAYUP_BB_E)};
+  const a0=h.bx+(h.x-h.bx)*.05,a1=h.x+60;
+  let prevA=a0,prevF=f(a0);
+  for(let i=1;i<=80;i++){
+    const a=a0+(a1-a0)*i/80,fa=f(a);
+    if(prevF!==null&&fa!==null&&prevF*fa<=0){
+      let lo=prevA,hi=a,flo=prevF;
+      for(let k=0;k<14;k++){const m=(lo+hi)/2,fm=f(m);if(fm===null)break;if(flo*fm<=0)hi=m;else{lo=m;flo=fm}}
+      return {x:(lo+hi)/2,y:ay};
+    }
+    prevA=a;prevF=fa;
+  }
+  return null;
+}
+/* one physics step of the ball */
+function stepBall(dt,live){
+  const b=st.ball,s=b.shot,py=b.y;
+  b.vy+=G*dt;
+  const gsp=Math.hypot(b.vx,b.vy);if(gsp>900){b.vx*=900/gsp;b.vy*=900/gsp}
+  b.x+=b.vx*dt;b.y+=b.vy*dt;
+  if(s)s.t+=dt;
+  if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)*.6}
+  if(b.x>W-R){b.x=W-R;b.vx=-Math.abs(b.vx)*.6}
+  const hs=s?hoops[s.by.atk]:null;
+  for(const h of hoops){
+    const c=hoopContact(b,h);
+    if(!s||h!==hs)continue;
+    /* visual only: the board and the rim give a little on impact (2-4px), the colliders never move */
+    if(c.bb>0){h.bV=(h.bV||0)+h.s*clamp(c.bb*.2,0,85);touchRim(c.bb,true)}
+    if(c.rim>0){
+      h.rV+=clamp(c.rim*.2,0,85);
+      s.rimTouched=true;
+      if(s.layup&&!s.scored&&s.t-s.lastHit>.12){s.lastHit=s.t;s.hits++}
+      touchRim(c.rim,false);
+    }
+  }
+  if(!s||s.scored||!live)return false;
+  const sh=s.by,o=st.p[1-sh.idx];
+  /* a block: a solid hit on a rising ball above the rim, before it has touched the rim */
+  if(!s.dunk&&!s.ft&&!s.sure&&!s.rimTouched&&o.y<FLOOR-30&&b.y<RIMY-4&&b.vy<0){
+    const cx=o.x+o.face*6,cy=o.y-100;
+    const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
+    if(Math.hypot(b.x-cx,b.y-cy)<reachR*.55+R){blockBall(o,sh,'BLOCKED!',cx,cy);return true}
+  }
+  /* goaltending: a defender touches a shot while it is inside the rim's cylinder, coming down or bouncing on the rim there.
+     Once the ball has bounced out of the cylinder, touching it is a rebound, not a goaltend. */
+  const inCyl=Math.abs(b.x-hs.x)<RIMH+R&&b.y<RIMY+NET_DEPTH;
+  if(inCyl)s.inCyl=true;else if(s.inCyl)s.leftCyl=true;
+  if(!s.dunk&&!s.ft&&!s.air&&!s.gt&&!s.leftCyl&&inCyl&&(b.vy>0||s.rimTouched)&&o.y<FLOOR-30){
+    const cx=o.x+o.face*6,cy=o.y-100;
+    const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
+    if(Math.hypot(b.x-cx,b.y-cy)<reachR+R){
+      s.gt=true;st.banner={text:'GOALTENDING',col:'#ffd166',t:0};msg('GOALTENDING',b.x,b.y-40,'#ffd166');sfx('block');
+      b.vx=(b.x>=cx?1:-1)*150;b.vy=-Math.abs(b.vy)*.3-60;b.noPick={p:o,t:.25};
+      scoreShot(s);
+      return true;
+    }
+  }
+  /* shooting foul: a defender's body hits the shooter in the air while his hand is nowhere near the ball. Called rarely. */
+  if(foulsOn&&!s.dunk&&!s.ft&&!s.foulCk&&sh.y<FLOOR-10&&b.state==='air'&&Math.abs(o.x-sh.x)<20&&Math.abs((o.y-40)-(sh.y-40))<46&&Math.hypot(b.x-(o.x+o.face*6),b.y-(o.y-100))>40){
+    s.foulCk=true;
+    if(Math.random()<.21){s.foul=true;sfxWhistle();msg('FOUL',sh.x,sh.y-120,'#ffd166');st.shake=Math.max(st.shake,.2)}
+  }
+  /* scoring: the ball's path segment crosses the line between the rim circles going down, with its center between them */
+  const crossing=b.vy>0&&py<=RIMY&&b.y>RIMY&&!s.noscore;
+  /* a red never counts, even if a bounce happens to drop it through */
+  if(crossing&&Math.abs(b.x-hs.x)<RIMH+R){netImpulse(hs,b.x,b.vx,b.vy);sfxSwish(b.vy)}
+  if(crossing&&s.tier!=='red'&&Math.abs(b.x-hs.x)<RIMH-R)scoreShot(s);
+  return false;
 }
 function updateBall(dt,live){
   const b=st.ball;b.t+=dt;
@@ -843,7 +1122,8 @@ function updateBall(dt,live){
     let tx,ty;
     if(p.meter||(pz&&pz.a1!==undefined)){const hp=handPos(p);tx=hp.x;ty=hp.y-4}
     else{
-      const bounce=p.y>=FLOOR?Math.abs(Math.sin(b.t*8+p.idx))*28:0,sc=p.ch.sc||1;
+      /* a dribble at a natural pace (about two bounces a second), with the ball rising a little less high */
+      const bounce=p.y>=FLOOR?Math.abs(Math.sin(b.t*6+p.idx))*22:0,sc=p.ch.sc||1;
       tx=p.x+p.face*18*sc;ty=p.y-(16+bounce)*sc;
     }
     /* a free throw: the shooter pound-dribbles the ball on the floor twice before the shot */
@@ -855,51 +1135,10 @@ function updateBall(dt,live){
     b.x+=(tx-b.x)*k;b.y+=(ty-b.y)*k;
     b.vx=0;b.vy=0;return;
   }
-  const py=b.y;
-  b.vy+=G*dt;
-  const gsp=Math.hypot(b.vx,b.vy);if(gsp>900){b.vx*=900/gsp;b.vy*=900/gsp}
-  b.x+=b.vx*dt;b.y+=b.vy*dt;
-  if(b.shot)b.shot.t+=dt;
-  if(b.x<R){b.x=R;b.vx=Math.abs(b.vx)*.6}
-  if(b.x>W-R){b.x=W-R;b.vx=-Math.abs(b.vx)*.6}
-  const sureNow=!!(b.shot&&b.shot.sure);
-  for(const h of hoops){
-    if(b.y>-40&&b.y<RIMY+28){
-      if(h.s===1&&b.x+R>h.bx&&b.vx>0){b.x=h.bx-R;b.vx=-b.vx*.55;touchRim()}
-      if(h.s===-1&&b.x-R<h.bx&&b.vx<0){b.x=h.bx+R;b.vx=-b.vx*.55;touchRim()}
-    }
-    for(const sx of [-1,1]){
-      const rx=h.x+sx*RIMH,dx=b.x-rx,dy=b.y-RIMY,d=Math.hypot(dx,dy);
-      if(d<R+2&&d>0){
-        const nx=dx/d,ny=dy/d;b.x=rx+nx*(R+2);b.y=RIMY+ny*(R+2);
-        const dot=b.vx*nx+b.vy*ny;
-        if(dot<0){b.vx-=1.55*dot*nx;b.vy-=1.55*dot*ny}
-        touchRim();
-      }
-    }
-  }
-  const sS=b.shot;
-  if(sS&&sS.sure&&!sS.scored&&b.vy>-60&&b.y>RIMY-R*3&&b.y<RIMY+R*3){const hs=hoops[sS.by.atk];b.x+=(hs.x-b.x)*Math.min(1,dt*6)}
-  const s=b.shot;
-  if(s&&!s.scored&&live){
-    const sh=s.by,o=st.p[1-sh.idx];
-    /* a block needs the defender's hand to reach the ball in the air, and only while the ball is still above the rim */
-    if(!s.dunk&&!s.ft&&o.y<FLOOR-30&&b.y<RIMY-4){
-      const cx=o.x+o.face*6,cy=o.y-100;
-      const reachR=14+clamp((o.ch.reach+T(o,'reach',0)-40)*.25,0,10);
-      if(Math.hypot(b.x-cx,b.y-cy)<reachR+R){blockBall(o,sh,'BLOCKED!',cx,cy);return}
-    }
-    /* shooting foul: a defender's body hits the shooter in the air while his hand is nowhere near the ball. Called rarely. */
-    if(foulsOn&&!s.dunk&&!s.ft&&!s.foulCk&&sh.y<FLOOR-10&&b.state==='air'&&Math.abs(o.x-sh.x)<20&&Math.abs((o.y-40)-(sh.y-40))<46&&Math.hypot(b.x-(o.x+o.face*6),b.y-(o.y-100))>40){
-      s.foulCk=true;
-      if(Math.random()<.21){s.foul=true;sfxWhistle();msg('FOUL',sh.x,sh.y-120,'#ffd166');st.shake=Math.max(st.shake,.2)}
-    }
-    const h=hoops[sh.atk];
-    if(b.vy>0&&py<=RIMY&&b.y>RIMY&&Math.abs(b.x-h.x)<(s.sure?RIMH+R:RIMH)&&!s.noscore)scoreShot(s);
-  }
+  for(let k=0;k<SUB;k++){if(b.state==='held'||b.state==='idle')break;if(stepBall(dt/SUB,live))break}
   if(b.y>FLOOR-R){
     b.y=FLOOR-R;
-    if(b.vy>140){b.vy=-b.vy*.68;sfx('bounce')}else b.vy=0;
+    if(b.vy>140){b.vy=-b.vy*.6;sfx('bounce')}else b.vy=0;
     b.vx*=.92;
     if(b.state==='air')b.state='loose';
     if(b.shot&&!b.shot.scored){shotMiss(b.shot);b.shot=null}
@@ -1046,7 +1285,7 @@ function update(dt){
   if(st.phase==='play'){
     if(st.ftWait>0)st.ftWait=Math.max(0,st.ftWait-dt);
     if(st.time>0&&!st.ft)st.time=Math.max(0,st.time-dt);
-    for(const p of st.p)if(p.tkOn){p.to-=dt/TK_DUR;if(p.to<=0){p.to=0;p.tkOn=false;msg('TAKEOVER OVER',p.x,p.y-130,'#9db2c4')}}
+    for(const p of st.p)if(p.tkOn&&!st.ft){p.to-=dt/TK_DUR;if(p.to<=0){p.to=0;p.tkOn=false;msg('TAKEOVER OVER',p.x,p.y-130,'#9db2c4')}}
     updatePlayers(dt,true);updateBall(dt,true);
     const bl=st.ball,settled=bl.y>=FLOOR-R-.5&&Math.abs(bl.vy)<1&&Math.abs(bl.vx)<10;
     if(st.time<=0&&!bl.shot&&bl.state!=='air'&&(bl.state==='held'||settled)&&!st.p[0].dunking&&!st.p[1].dunking)checkEnd();
@@ -1207,39 +1446,163 @@ function drawCrowd(){
   ctx.fillStyle=g;ctx.fillRect(0,150,W,FLOOR-150);
 }
 function drawCourt(){
+  /* arena backdrop: dark blue gradient with soft light pools from the ceiling */
   const g=ctx.createLinearGradient(0,0,0,FLOOR);
-  g.addColorStop(0,'#10243a');g.addColorStop(1,'#1d3b57');
+  g.addColorStop(0,'#081625');g.addColorStop(.55,'#12283f');g.addColorStop(1,'#203f5e');
   ctx.fillStyle=g;ctx.fillRect(0,0,W,FLOOR);
   drawCrowd();
+  /* hardwood: lit from above, planks run across the court, a glossy sheen under the lights */
   const f=ctx.createLinearGradient(0,FLOOR,0,H);
-  f.addColorStop(0,'#e2ae6d');f.addColorStop(1,'#c58a49');
+  f.addColorStop(0,'#e9b977');f.addColorStop(.5,'#d89e5c');f.addColorStop(1,'#b87a3e');
   ctx.fillStyle=f;ctx.fillRect(0,FLOOR,W,H-FLOOR);
-  ctx.fillStyle='rgba(120,70,20,.18)';
-  for(let x=0;x<W;x+=64)ctx.fillRect(x,FLOOR,2,H-FLOOR);
+  for(let x=0,i=0;x<W;x+=48,i++){
+    ctx.fillStyle=i%2?'rgba(255,255,255,.035)':'rgba(90,45,10,.05)';
+    ctx.fillRect(x,FLOOR,48,H-FLOOR);
+  }
+  ctx.fillStyle='rgba(120,65,20,.16)';
+  for(let x=0;x<W;x+=48)ctx.fillRect(x,FLOOR,1.5,H-FLOOR);
+  const sh=ctx.createLinearGradient(0,FLOOR,0,H);
+  sh.addColorStop(0,'rgba(255,245,225,.12)');sh.addColorStop(1,'rgba(255,245,225,0)');
+  ctx.fillStyle=sh;ctx.fillRect(0,FLOOR,W,H-FLOOR);
+  /* arena ceiling: a row of evenly spaced light panels with an even wash of light under them */
+  ctx.save();ctx.globalCompositeOperation='lighter';
+  const wash=ctx.createLinearGradient(0,0,0,FLOOR);
+  wash.addColorStop(0,'rgba(255,240,215,.05)');wash.addColorStop(1,'rgba(255,240,215,0)');
+  ctx.fillStyle=wash;ctx.fillRect(0,0,W,FLOOR);
+  const PN=16;
+  for(let i=0;i<PN;i++){const lx=(i+.5)*W/PN;ctx.fillStyle='rgba(255,246,228,.5)';ctx.fillRect(lx-14,0,28,3)}
+  ctx.restore();
+  /* a painted baseline sits on the floor edge, with a dark shadow under the wall */
+  ctx.fillStyle='rgba(0,0,0,.35)';ctx.fillRect(0,FLOOR-2,W,3);
   ctx.fillStyle='#f6e7c8';ctx.fillRect(0,FLOOR,W,3);
-  ctx.fillStyle='rgba(246,231,200,.55)';
+  /* court markings, drawn in soft paint */
+  ctx.fillStyle='rgba(255,250,240,.6)';
   for(const h of hoops){
     const ax=h.x-h.s*300;
     ctx.fillRect(ax-1,FLOOR+6,3,H-FLOOR-12);
     ctx.fillRect(Math.min(h.x,h.x-h.s*150),FLOOR+22,150,3);
   }
-  ctx.font='600 11px Inter, sans-serif';ctx.fillStyle='rgba(246,231,200,.7)';ctx.textAlign='center';
+  ctx.font='600 11px Inter, sans-serif';ctx.fillStyle='rgba(246,231,200,.75)';ctx.textAlign='center';
   ctx.fillText('3 PT LINE',hoops[0].x+300,H-10);ctx.fillText('3 PT LINE',hoops[1].x-300,H-10);
 }
+/* darkened edges pull the eye to the middle of the court */
+/* hoop physics: the rim rings after a touch, and the net is a grid of knots joined by springs.
+   The top row is fixed to the rim; the ball shoves the knots it passes through, so the net stretches and swings like a real one. */
+const NET_COLS=7,NET_ROWS=5,NET_DEPTH=40;
+function initNet(h){
+  h.net={nodes:[],links:[]};
+  const rows=[];
+  for(let r=0;r<NET_ROWS;r++){
+    const f=r/(NET_ROWS-1),hw=RIMH*(1-.4*f),row=[];
+    for(let c=0;c<NET_COLS;c++){
+      const t=c/(NET_COLS-1),n={rx:h.x+(t*2-1)*hw,ry:RIMY+f*NET_DEPTH,x:0,y:0,vx:0,vy:0,fixed:r===0};
+      n.x=n.rx;n.y=n.ry;row.push(n);h.net.nodes.push(n);
+    }
+    rows.push(row);
+  }
+  const link=(a,b)=>h.net.links.push({a,b,L:Math.hypot(b.x-a.x,b.y-a.y)});
+  for(let r=0;r<NET_ROWS;r++)for(let c=0;c<NET_COLS;c++){
+    if(c<NET_COLS-1)link(rows[r][c],rows[r][c+1]);
+    if(r<NET_ROWS-1)link(rows[r][c],rows[r+1][c]);
+  }
+  h.net.rows=rows;
+}
+function netStep(h,dt){
+  const N=h.net,K=520,DAMP=5,GRAV=170;
+  for(const n of N.nodes){
+    if(n.fixed){n.x=n.rx;n.y=RIMY+h.rOff;n.vx=0;n.vy=0}
+  }
+  const fx=new Float32Array(N.nodes.length),fy=new Float32Array(N.nodes.length);
+  const idx=new Map(N.nodes.map((n,i)=>[n,i]));
+  for(const l of N.links){
+    const dx=l.b.x-l.a.x,dy=l.b.y-l.a.y,d=Math.hypot(dx,dy)||1;
+    const f=K*(d-l.L),ux=dx/d,uy=dy/d;
+    const rv=((l.b.vx-l.a.vx)*ux+(l.b.vy-l.a.vy)*uy)*DAMP;
+    const ia=idx.get(l.a),ib=idx.get(l.b);
+    fx[ia]+=(f+rv)*ux;fy[ia]+=(f+rv)*uy;fx[ib]-=(f+rv)*ux;fy[ib]-=(f+rv)*uy;
+  }
+  /* the ball pushes the knots it is passing through */
+  const b=st&&st.ball;
+  const inNet=b&&Math.abs(b.x-h.x)<RIMH+8&&b.y>RIMY+h.rOff&&b.y<RIMY+h.rOff+NET_DEPTH+10;
+  N.nodes.forEach((n,i)=>{
+    if(n.fixed)return;
+    fy[i]+=GRAV;
+    if(inNet){
+      const dist=Math.hypot(n.x-b.x,n.y-b.y),w=Math.max(0,1-dist/16);
+      if(w>0){fx[i]+=b.vx*w*14;fy[i]+=Math.max(b.vy,0)*w*14}
+    }
+    n.vx=(n.vx+fx[i]*dt)*(1-Math.min(.9,DAMP*dt*.2));
+    n.vy=(n.vy+fy[i]*dt)*(1-Math.min(.9,DAMP*dt*.2));
+    n.x+=n.vx*dt;n.y+=n.vy*dt;
+    n.y=Math.min(n.y,RIMY+NET_DEPTH+30);
+  });
+}
+/* the ball passing through the scoring line pushes the net knots under it, scaled by its velocity, so fast swishes whip and soft rolls sway */
+function netImpulse(h,bx,vx,vy){
+  if(!h.net)return;
+  for(const n of h.net.nodes){
+    if(n.fixed)continue;
+    const w=Math.max(0,1-Math.abs(n.x-bx)/24)*Math.max(0,1-(n.y-RIMY)/(NET_DEPTH+14));
+    if(w<=0)continue;
+    n.vx+=vx*w*.28;n.vy+=vy*w*.42;
+  }
+}
+function hoopPhysics(dt){
+  for(const h of hoops){
+    h.rV+=(-420*h.rOff-7*h.rV)*dt;h.rOff+=h.rV*dt;
+    /* the backboard gives a little on impact, visually only */
+    h.bV=(h.bV||0)+(-420*(h.bOff||0)-7*(h.bV||0))*dt;h.bOff=clamp((h.bOff||0)+h.bV*dt,-4,4);
+    if(!h.net)initNet(h);
+    netStep(h,dt);
+  }
+}
+/* a faint glow: the frame is shrunk, blurred and added back over itself so bright lights and the ball spill a little */
+const bloomCv=document.createElement('canvas');bloomCv.width=200;bloomCv.height=113;const bloomCtx=bloomCv.getContext('2d');
+function drawBloom(){
+  bloomCtx.clearRect(0,0,bloomCv.width,bloomCv.height);
+  bloomCtx.drawImage(cv,0,0,bloomCv.width,bloomCv.height);
+  ctx.save();ctx.setTransform(1,0,0,1,0,0);
+  ctx.globalCompositeOperation='lighter';ctx.globalAlpha=.12;
+  if('filter' in ctx)ctx.filter='blur(6px)';
+  ctx.drawImage(bloomCv,0,0,cv.width,cv.height);
+  ctx.restore();
+}
+function drawVignette(){
+  const v=ctx.createRadialGradient(W/2,H*.48,H*.35,W/2,H*.48,W*.62);
+  v.addColorStop(0,'rgba(0,0,0,0)');v.addColorStop(1,'rgba(0,0,0,.42)');
+  ctx.fillStyle=v;ctx.fillRect(0,0,W,H);
+}
 function drawHoop(h,swish){
-  ctx.fillStyle='#5b7088';ctx.fillRect(h.bx+h.s*16-3,RIMY-36,6,FLOOR-RIMY+36);
-  ctx.fillStyle='#e9eef3';
-  ctx.fillRect(h.s===1?h.bx:h.bx-6,RIMY-78,6,106);
-  ctx.fillStyle='#ef4f48';ctx.fillRect(h.s===1?h.bx:h.bx-6,RIMY-6,6,24);
+  const ry=RIMY+h.rOff;
+  /* pole with a shaded base and a shadow on the floor */
+  const pg=ctx.createLinearGradient(h.bx+h.s*16-4,0,h.bx+h.s*16+4,0);
+  pg.addColorStop(0,'#3d4e62');pg.addColorStop(.5,'#8ea3b8');pg.addColorStop(1,'#3d4e62');
+  ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(h.bx+h.s*16,FLOOR+4,30,5,0,0,7);ctx.fill();
+  ctx.fillStyle=pg;ctx.fillRect(h.bx+h.s*16-4,RIMY-36,8,FLOOR-RIMY+36);
+  /* backboard: glass with a white frame and the red shooter's square */
+  const bx=(h.s===1?h.bx:h.bx-6)+(h.bOff||0);
+  ctx.fillStyle='rgba(190,225,250,.28)';ctx.fillRect(bx,RIMY-78,6,106);
+  ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.5;ctx.strokeRect(bx+.5,RIMY-77.5,5,105);
+  ctx.strokeStyle='#ef4f48';ctx.lineWidth=1.5;
+  ctx.strokeRect(bx+.5,RIMY-10.5,5,22);
+  ctx.lineWidth=1;
+  /* net: strands that sway when a shot goes in */
   const sway=swish>0?Math.sin(swish*30)*4*swish:0;
-  ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.5;
-  ctx.beginPath();
-  for(let i=0;i<=4;i++){const t=i/4;ctx.moveTo(h.x-RIMH+t*2*RIMH,RIMY+2);ctx.lineTo(h.x-RIMH*.6+t*1.2*RIMH+sway,RIMY+36)}
-  ctx.moveTo(h.x-RIMH*.85+sway*.4,RIMY+14);ctx.lineTo(h.x+RIMH*.85+sway*.4,RIMY+14);
-  ctx.moveTo(h.x-RIMH*.6+sway,RIMY+36);ctx.lineTo(h.x+RIMH*.6+sway,RIMY+36);
-  ctx.stroke();
-  ctx.strokeStyle='#ef4f48';ctx.lineWidth=4;ctx.lineCap='round';
-  ctx.beginPath();ctx.moveTo(h.x-RIMH,RIMY);ctx.lineTo(h.x+RIMH,RIMY);ctx.stroke();
+  /* net: draw the knot grid, row by row and column by column */
+  if(h.net){
+    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1.1;ctx.lineCap='round';
+    ctx.beginPath();
+    for(const row of h.net.rows){ctx.moveTo(row[0].x,row[0].y);for(const n of row)ctx.lineTo(n.x,n.y)}
+    for(let c=0;c<NET_COLS;c++){ctx.moveTo(h.net.rows[0][c].x,h.net.rows[0][c].y);for(let r=1;r<NET_ROWS;r++)ctx.lineTo(h.net.rows[r][c].x,h.net.rows[r][c].y)}
+    ctx.stroke();
+  }
+  /* rim: shadow first, then the iron, which rings a little after a touch */
+  ctx.strokeStyle='rgba(0,0,0,.35)';ctx.lineWidth=5;ctx.lineCap='round';
+  ctx.beginPath();ctx.moveTo(h.x-RIMH,ry+2);ctx.lineTo(h.x+RIMH,ry+2);ctx.stroke();
+  ctx.strokeStyle='#ef4f48';ctx.lineWidth=4;
+  ctx.beginPath();ctx.moveTo(h.x-RIMH,ry);ctx.lineTo(h.x+RIMH,ry);ctx.stroke();
+  ctx.strokeStyle='rgba(255,220,220,.6)';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(h.x-RIMH+2,ry-1.2);ctx.lineTo(h.x+RIMH-2,ry-1.2);ctx.stroke();
   ctx.lineWidth=1;
 }
 const DEF_FACE={hair:'#17212b',style:'short'};
@@ -1399,11 +1762,19 @@ function drawBall(){
     gr.addColorStop(0,'rgba(255,190,80,.8)');gr.addColorStop(1,'rgba(255,120,40,0)');
     ctx.fillStyle=gr;ctx.beginPath();ctx.arc(b.x,b.y,26,0,7);ctx.fill();
   }
+  /* a soft contact shadow on the floor when the ball is down there */
+  if(b.y>FLOOR-R-6){ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(b.x,FLOOR+4,R*.9,3.2,0,0,7);ctx.fill()}
   ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.x*.07);
-  ctx.fillStyle='#ee7a2a';ctx.beginPath();ctx.arc(0,0,R+1,0,7);ctx.fill();
-  ctx.strokeStyle='#5b2a0c';ctx.lineWidth=1.3;
-  ctx.beginPath();ctx.arc(0,0,R+1,0,7);ctx.moveTo(-R-1,0);ctx.lineTo(R+1,0);ctx.moveTo(0,-R-1);ctx.lineTo(0,R+1);ctx.stroke();
+  /* leather ball: shaded body, highlight, seams and grooves */
+  const bg=ctx.createRadialGradient(-4,-4,1,0,0,R+1);
+  bg.addColorStop(0,'#ffb277');bg.addColorStop(.55,'#ee7a2a');bg.addColorStop(1,'#a84a16');
+  ctx.fillStyle=bg;ctx.beginPath();ctx.arc(0,0,R+1,0,7);ctx.fill();
+  ctx.strokeStyle='#4a2008';ctx.lineWidth=1.2;
+  ctx.beginPath();ctx.moveTo(-R-1,0);ctx.lineTo(R+1,0);ctx.moveTo(0,-R-1);ctx.lineTo(0,R+1);ctx.stroke();
+  ctx.strokeStyle='rgba(74,32,8,.8)';ctx.lineWidth=.9;
+  ctx.beginPath();ctx.arc(0,0,R+1,0,7);ctx.stroke();
   ctx.restore();
+  ctx.fillStyle='rgba(255,255,255,.35)';ctx.beginPath();ctx.arc(b.x-3.5,b.y-4,2.4,0,7);ctx.fill();
 }
 function drawHUD(){
   const [a,c]=st.p;
@@ -1440,6 +1811,8 @@ function draw(){
   if(!st)return;
   st.p.forEach(drawPlayer);
   drawBall();
+  drawVignette();
+  drawBloom();
   ctx.setTransform(dpr,0,0,dpr,0,0);
   drawHUD();
   ctx.textAlign='center';
@@ -1556,7 +1929,10 @@ function playSeries(m){
 }
 function simOthers(T){T.rounds[T.r].forEach(m=>{if(!m.done&&!isHuman(m))playSeries(m)})}
 function newTournament(){
-  const ids=CH.map((_,i)=>i);
+  /* 16 entrants: the player plus 15 random others */
+  const ids=CH.map((_,i)=>i).filter(i=>i!==flow.ch);
+  for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
+  ids.length=15;ids.push(flow.ch);
   for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
   const first=[];for(let i=0;i<ids.length;i+=2)first.push(newMatch(ids[i],ids[i+1]));
   flow.tour={rounds:[first],r:0,out:false,champ:null};
@@ -1784,7 +2160,7 @@ document.getElementById('mute').addEventListener('click',e=>{muted=!muted;e.curr
 let last=0;
 function frame(ts){
   const dt=Math.min(.033,(ts-last)/1000||0);last=ts;
-  update(dt);crowdAudio();draw();
+  update(dt);hoopPhysics(dt);crowdAudio();draw();
   requestAnimationFrame(frame);
 }
 homeScreen();
