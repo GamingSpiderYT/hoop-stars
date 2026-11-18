@@ -318,6 +318,11 @@ const EXTRA={
   chet:{sc:1.1,face:{hair:'#2a1b12',style:'short'}}
 };
 CH.forEach(c=>Object.assign(c,EXTRA[c.look]||{}));
+/* real height and arm length (wingspan minus height), in inches, from published listings (approximate, not checked player by player).
+   Body scale is height relative to 6'7", raised to 0.75 so the gaps are compressed (Wembanyama vs Curry is about 1.14x, not 1.19x).
+   Arm length adds to the reach value, also compressed (2.2 reach per inch above the baseline). */
+const BODY={jordan:[78,4],lebron:[81,3],curry:[74,2],yaxel:[80,4],bam:[81,6],giannis:[83,4],mitchell:[73,4],mobley:[83,7],kyrie:[74,4],flagg:[81,7],kobe:[78,4],shaq:[85,5],luka:[79,4],reaves:[77,3],shai:[78,4],chet:[84,6],maxey:[74,2],brown:[78,4],duren:[81,6],cade:[77,4],ad:[82,8],trae:[73,1],avdija:[80,3],lillard:[74,2],edwards:[76,5],lamelo:[79,4],jokic:[83,6],murray:[76,3],wemby:[88,5],castle:[78,3]};
+CH.forEach(c=>{const b=BODY[c.look];if(!b)return;c.sc=Math.pow(b[0]/79,.75);c.reach=Math.round(36+2.2*(b[1]-2))});
 const DIFF=[{label:'Easy',lvl:.35},{label:'Normal',lvl:.58},{label:'Hard',lvl:.82}];
 const ROUNDS=['First Round','Conference Semis','Conference Finals','Finals'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -581,13 +586,14 @@ const ANIMS={
   crossback:{d:.5,pose:s=>({lean:.25*sn(PI*s),a1:-.9+.5*sn(3*PI*s)})},
   harden:{d:.55,pose:s=>{const k=sn(PI*s);return{lean:.4*k,dy:3*k,legs:[20,0,-18,0],a2:.4}}},
   kyrie:{d:.6,pose:s=>({dx:sn(s*PI*8)*6*(1-s),lean:.2*sn(PI*s)+.1*sn(s*PI*8),a1:-.8})},
-  layup:{d:.45,pose:s=>({a1:1+.5*sm(s),a2:.2,legs:[10,-20,-4,0],lean:-.05})},
+  layup:{d:.45,pose:s=>({a1:.9+.8*sm(s),a2:.3,legs:[10,-20,-4,0],lean:-.05})},
   fingerroll:{d:.5,pose:s=>({a1:1.25+.4*sn(PI*s)+.2*s,a2:.3,legs:[12,-18,-4,0]})},
   scoop:{d:.45,pose:s=>({a1:-.5+1.9*sm(s),a2:.1,legs:[16,-8,-10,0],lean:.08*sn(PI*s)})},
   floater:{d:.5,pose:s=>({a1:1.45,a2:.6,legs:[-3,-6,-14,-14],lean:.14})},
-  eurostep:{d:.5,pose:s=>{const w=sn(PI*Math.min(1,s*1.4));return{a1:s<.6?-.5:1.2+.3*s,a2:.2,legs:[16*w+2,-3*w,-16*w-2,-3*w],lean:-.1*w}}},
+  /* slow:.5 is visual only: the euro step plays at half speed on screen, the release timing is the same */
+  eurostep:{d:.5,slow:.5,pose:s=>{const w=sn(PI*Math.min(1,s*1.4));return{a1:s<.6?-.5:1.2+.3*s,a2:.2,legs:[16*w+2,-3*w,-16*w-2,-3*w],lean:-.1*w}}},
   reverse:{d:.55,pose:s=>({sx:1-2*sm(clamp(s*1.6,0,1)),a1:1.6,a2:.6,legs:[8,-16,-6,0]})},
-  spinlay:{d:.5,pose:s=>({sx:Math.cos(2*PI*s),a1:1.3,a2:.4,legs:[10,-14,-4,0]})},
+  teardrop:{d:.5,pose:s=>({a1:2-.7*sm(s),a2:.2+.3*s,legs:[12,-16,-4,0],lean:-.04})},
   upunder:{d:.6,rel:.36,pose:s=>({a1:s<.35?1.7:s<.6?1.7-2.2*sm((s-.35)/.25):-.5+1.9*sm((s-.6)/.4),a2:.3,legs:[8,-14,-8,-8],lean:.18*sn(PI*clamp((s-.3)/.4,0,1))})},
   doubleclutch:{d:.62,rel:.3,pose:s=>({a1:1.7-.8*Math.abs(sn(PI*s*3)),a2:.5,legs:[8,-14,-8,-8]})},
   behindback:{d:.5,pose:s=>({a1:3-1.6*sm(s),a2:.9,lean:.12*sn(PI*s),legs:[10,-14,-4,0]})},
@@ -609,37 +615,44 @@ const ANIMS={
   posterized:{d:1.3,pose:s=>{const k=sm(clamp(s*2,0,1));return{lean:1.45*k,dx:-8*k,a1:2.6,a2:2.2,legs:[10,-22,-8,-16],dy:-4*sn(PI*clamp(s*2,0,1))}}}
 };
 const DUNKS={
-  tomahawk:{dur:.34,pose:s=>{const e=sm(s);return{a1:2.8-3.4*e,a2:2.4-2.2*e,legs:[10,-14,-8,-10],lean:-.18*sn(PI*s)}}},
-  twohand:{dur:.34,pose:s=>{const a=2.3-2.7*sm(s);return{a1:a,a2:a,legs:[8,-12,-8,-12],lean:-.12*sn(PI*s)}}},
-  windmill:{dur:.4,pose:s=>({a1:1.6-6.28*sm(s),a2:.9,legs:[16,-10,-14,-12],lean:-.15*sn(PI*s)})},
-  reverse:{dur:.38,pose:s=>({sx:1-2*sm(clamp(s*1.8,0,1)),a1:2.4-3*sm(s),a2:1.6,legs:[8,-12,-8,-12]})},
+  tomahawk:{dur:.34,pose:s=>{const e=sm(s);return{a1:2.9-3.3*e,a2:2.5-2.4*e,legs:[12,-16,-10,-12],lean:-.2*sn(PI*s)}}},
+  twohand:{dur:.34,pose:s=>{const a=2.4-2.8*sm(s);return{a1:a,a2:a,legs:[12,-16,-10,-14],lean:-.14*sn(PI*s)}}},
+  windmill:{dur:.42,pose:s=>({a1:1.7-6.28*sm(s),a2:.9-.4*sn(PI*s),legs:[16,-12,-14,-12],lean:-.15*sn(PI*s)})},
+  reverse:{dur:.38,pose:s=>({sx:1-2*sm(clamp(s*1.8,0,1)),a1:2.4-3*sm(s),a2:1.6,legs:[10,-14,-8,-12]})},
   betweenlegs:{dur:.46,pose:s=>({a1:s<.45?-1.3*sm(s/.45):s<.8?-1.3+2.8*sm((s-.45)/.35):1.5-1.9*sm((s-.8)/.2),a2:.3,legs:s<.5?[14,-6,-14,-6]:[8,-12,-8,-10]})},
-  threesixty:{dur:.5,pose:s=>({sx:Math.cos(2*PI*s),a1:2.8-3.4*sm(s),a2:2,legs:[8,-14,-8,-10]})},
-  cradle:{dur:.55,pose:s=>({a1:s<.7?-.3+3.3*(s/.7):3-3.6*((s-.7)/.3),a2:.5,legs:[10,-12,-8,-10],lean:-.18*sn(PI*s)})},
+  backscratch:{dur:.44,pose:s=>{const k=clamp(s/.55,0,1);return{a1:s<.55?2.3+1.2*sm(k):3.5-4.1*sm((s-.55)/.45),a2:s<.55?1.5-.5*k:.6,legs:[12,-14,-8,-12],lean:-.16*sn(PI*s)}}},
+  dunk180:{dur:.48,pose:s=>({sx:Math.cos(PI*s),a1:2.6-3.2*sm(s),a2:1.8-1.4*sm(s),legs:[10,-14,-8,-12],lean:-.1*sn(PI*s)})},
   jordan:{dur:.58,pose:s=>({a1:s<.7?-.3+3.3*(s/.7):3-3.6*((s-.7)/.3),a2:.3,legs:[24,-10,-22,-16],lean:-.1*sn(PI*s)})},
-  honeydip:{dur:.55,pose:s=>({a1:s<.75?-1+4*sm(s/.75):3-3.6*((s-.75)/.25),a2:.4,legs:[10,-12,-8,-10],lean:-.14*sn(PI*s)})}
+  threesixty:{dur:.5,pose:s=>({sx:Math.cos(2*PI*s),a1:2.8-3.4*sm(s),a2:2,legs:[8,-14,-8,-10]})},
+  backboard:{dur:.6,pose:s=>({a1:s<.5?.6+1.9*sm(s/.5):2.5-3.1*sm((s-.5)/.5),a2:s<.5?1.2:.4,legs:[16,-14,-12,-14],lean:-.12*sn(PI*s)})}
 };
-const NAMES={layup:'LAYUP',fingerroll:'FINGER ROLL',scoop:'SCOOP',floater:'FLOATER',eurostep:'EURO STEP',reverse:'REVERSE',spinlay:'SPIN LAYUP',
+const NAMES={layup:'LAYUP',fingerroll:'FINGER ROLL',scoop:'SCOOP',floater:'FLOATER',eurostep:'EURO STEP',reverse:'REVERSE',teardrop:'TEARDROP',
   upunder:'UP & UNDER',doubleclutch:'DOUBLE CLUTCH',behindback:'BEHIND THE BACK',
   stepback:'STEPBACK',hopback:'HOP BACK',crossback:'CROSS STEPBACK',harden:'HARDEN STEPBACK',kyrie:'KYRIE SHAKE',
   spin:'SPIN MOVE',crossover:'CROSSOVER',hesi:'HESITATION',bbdash:'BEHIND THE BACK',
   jumper:'JUMPER',fadeaway:'FADEAWAY',onelegfade:'ONE-LEG FADE',turnaround:'TURNAROUND',
   tomahawk:'TOMAHAWK',twohand:'TWO-HAND SLAM',windmill:'WINDMILL',betweenlegs:'BETWEEN THE LEGS',threesixty:'360 DUNK',
-  cradle:'CRADLE',jordan:'FREE-THROW LINE',honeydip:'HONEY DIP',shimmy:'SHIMMY',flex:'FLEX',nightnight:'NIGHT NIGHT',
+  backscratch:'BACKSCRATCHER',dunk180:'180 DUNK',backboard:'OFF THE BACKBOARD',jordan:'FREE-THROW LINE',shimmy:'SHIMMY',flex:'FLEX',nightnight:'NIGHT NIGHT',
   dametime:'DAME TIME',shrug:'THE SHRUG',chestpound:'CHEST POUND',wag:'NOT IN MY HOUSE',hush:'HUSH',bow:'BOW & ARROW',poster:'POSTER!',posterblock:'POSTERIZED OVER THE BLOCK',snatchblock:'SNATCH BLOCK'};
-const RARE=new Set(['upunder','doubleclutch','behindback','harden','kyrie','bbdash','onelegfade','betweenlegs','threesixty','jordan','honeydip','nightnight','dametime','shrug','bow','hush','poster','posterblock','snatchblock']);
+const RARE=new Set(['upunder','doubleclutch','behindback','harden','kyrie','bbdash','onelegfade','betweenlegs','threesixty','jordan','backboard','backscratch','dunk180','nightnight','dametime','shrug','bow','hush','poster','posterblock','snatchblock']);
 const BANNER=new Set();
-const LAYUPS=[['layup',26],['fingerroll',18],['scoop',16],['floater',12],['eurostep',12],['reverse',8],['spinlay',6],['upunder',4],['doubleclutch',4],['behindback',1.5]];
+const LAYUPS=[['layup',1],['fingerroll',1],['scoop',1],['floater',1],['teardrop',1],['eurostep',1],['reverse',1],['upunder',1],['doubleclutch',1],['behindback',1]];
 const STEPBACKS=[['stepback',50],['hopback',22],['crossback',18],['harden',6],['kyrie',4]];
 const DASHMOVES=[['spin',35],['crossover',35],['hesi',24],['bbdash',6]];
-const CLOSE_DUNKS=[['tomahawk',30],['twohand',28],['windmill',20],['reverse',12],['betweenlegs',5],['threesixty',5]];
-const LONG_DUNKS=[['cradle',34],['windmill',26],['jordan',18],['honeydip',12],['threesixty',10]];
+const CLOSE_DUNKS=[['tomahawk',1],['twohand',1],['windmill',1],['reverse',1],['betweenlegs',1],['backscratch',1],['dunk180',1]];
+const LONG_DUNKS=[['jordan',1],['threesixty',1],['backboard',1]];
 function getPose(p){
   if(p.fall)return fallPose(p);
   const d=p.dunking;
   if(d)return DUNKS[d.style].pose(Math.min(1,d.t/d.dur));
   if(p.hang>0){const k=p.hang*14;return{a1:.9,a2:.9,legs:[-4+sn(k)*5,-10,4+Math.cos(k)*5,-6]}}
   if(p.anim){const sp=ANIMS[p.anim.n];if(sp)return sp.pose(Math.min(1,p.anim.t/p.anim.d))}
+  /* airborne: the arm goes up with the jump. A shooter with the ball raises it to shoot, a defender reaches up to contest */
+  if(p.y<FLOOR-3&&p.dash<=0){
+    if(p.has&&p.meter)return{a1:1.35,a2:.9};
+    if(p.has)return{a1:1.1,a2:1.3};
+    return{a1:1.25,a2:.9};
+  }
   if(p.dash>0){
     /* running stride: forward dash leans in with the ball dribbled out front, backward dash leans back and gives ground */
     const fwd=p.dashDir===p.face,k=Math.sin(p.run*2);
@@ -660,7 +673,7 @@ function celebrate(p,nm){p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm,true)}
 
 /* ---------- takeover ---------- */
 const TK_DUR=16;
-const TKV={two:.1,three:.16,green:.06,dunk:.12,poster:.08,blk:.16,stl:.14,miss:-.05,air:-.09,open:-.1,travel:-.05};
+const TKV={two:.1,three:.16,green:.06,ftMade:.06,ftMiss:-.06,dunk:.12,poster:.08,blk:.16,stl:.14,miss:-.05,air:-.09,open:-.1,travel:-.05};
 /* a trait that only applies while this player is in takeover */
 function T(p,k,d){return p.tkOn&&p.ch.tk&&p.ch.tk[k]!==undefined?p.ch.tk[k]:d}
 function tkGain(p,ev){
@@ -678,7 +691,7 @@ function startTakeover(p){
 }
 function shotMiss(s){
   if(!s||s.scored||s.mdone||s.dunk)return;
-  s.mdone=true;st.missBy=s.by;tkGain(s.by,s.air?'air':'miss');
+  s.mdone=true;st.missBy=s.by;if(!s.clankDone)tkGain(s.by,s.ft?'ftMiss':s.air?'air':'miss');
   if(s.foul&&!s.ft){st.ftPending={p:s.by,n:s.pts===3?3:2};st.phase='goal';st.pt=1.2}
   if(s.ft&&st.ft){st.ft.left--;if(st.ft.left>0){st.phase='goal';st.pt=1}else{
     /* the last free throw stays live, but the ball is knocked toward the other player and the shooter is kept off it for a moment, so a rebound is rare */
@@ -722,14 +735,34 @@ function layupNow(p){
   const dist=Math.abs(p.x-hoops[p.atk].x);
   return dist<=240&&p.vx*p.ad>90&&!(p.y<FLOOR-10&&dist<100);
 }
+/* Contest scaling tables: linear interpolation between [contest, value] knots, so each tier blends into the next.
+   GREEN_K: fraction of the green window left. 0-15% wide open 1.0; 16-39% shrinks 12-30%; 40-69% shrinks 40-68%;
+   70-84% shrinks 72-85%; 85-100% shrinks to an ~8% sliver.
+   MISS_K: multiplier on the yellow/orange miss offset (1.0, 1.4, 2.3, 3.1, 4.0 at the tier centers).
+   LIFT_K: extra arc apex height in px (0, 0, +18, +30, +40). */
+const GREEN_K=[[0,1],[.15,1],[.16,.85],[.39,.67],[.40,.55],[.69,.28],[.70,.25],[.84,.12],[.85,.01],[1,.01]];
+/* the green never vanishes: its minimum width in meter pixels (3px, 2-3px very heavy, 1-2px smothered) */
+const MINPX_K=[[0,3],[.7,3],[.84,2],[.85,1.5],[1,1]];
+const MISS_K=[[0,1],[.15,1],[.275,1.45],[.545,2.4],[.77,3.3],[.925,4.25],[1,4.25]];
+const LIFT_K=[[0,0],[.39,0],[.40,20],[.69,20],[.70,32],[.84,32],[.85,42],[1,42]];
+const LAYUP_PEN=.9,LAYUP_GREEN_MIN=.2,LAYUP_MISS_MAX=2.9;
+function lerpK(k,x){
+  if(x<=k[0][0])return k[0][1];
+  for(let i=1;i<k.length;i++)if(x<=k[i][0]){const a=k[i-1],b=k[i];return a[1]+(b[1]-a[1])*(x-a[0])/(b[0]-a[0])}
+  return k[k.length-1][1];
+}
+/* miss offset multiplier: layups get 90% of the jump-shot penalty, capped at 2.9x */
+const missMul=(cp,layup)=>{const m=lerpK(MISS_K,cp);return layup?Math.min(LAYUP_MISS_MAX,1+(m-1)*LAYUP_PEN):m};
 /* Meter tiers as fractions of jump speed away from the apex: green (sure make), yellow (coin flip, front-rim brick),
    orange (long shot, barely clips the rim), red (airball). Everything scales with distance, defender and layup. */
 function tiers(p,o,layup){
   const sw=shotWin(p,o),W=sw.w*(layup?2.2*(p.ch.fin||1)*T(p,'fin',1):1);
   const fs=clamp(1.5-sw.dist/400,.35,1)*sw.dm;
-  /* the contest shrinks the green window by up to 75% when smothered, and the yellow and orange windows a little */
-  const gw=1-.75*sw.cp,ow=1-.25*sw.cp;
-  return {g:Math.max(.48*W,.07*fs)*gw,y:Math.max(W,.12*fs)*ow,o:Math.max(1.6*W,.19*fs)*ow,cm:sw.cm,cp:sw.cp};
+  /* the contest shrinks the green window in tiers (see GREEN_K), and the yellow and orange windows a little.
+     Layups take 90% of the penalty (linear: 1 - 0.9 * green shrink, never below 20%).
+     The green never drops below its MINPX_K width on the 120px meter, so a tiny sliver always stays. */
+  const gf=lerpK(GREEN_K,sw.cp),gw=layup?Math.max(1-LAYUP_PEN*(1-gf),LAYUP_GREEN_MIN):gf,ow=1-.25*sw.cp;
+  return {g:Math.max(Math.max(.48*W,.07*fs)*gw,lerpK(MINPX_K,sw.cp)/120),y:Math.max(W,.12*fs)*ow,o:Math.max(1.6*W,.19*fs)*ow,cm:sw.cm,cp:sw.cp};
 }
 function give(p){
   const b=st.ball;
@@ -777,7 +810,7 @@ function stepPlayer(p,o,inp,dt,act){
   p.stun=Math.max(0,p.stun-dt);p.flash=Math.max(0,p.flash-dt);p.nobar=Math.max(0,(p.nobar||0)-dt);
   if(p.cfx){p.cfx.t-=dt;if(p.cfx.t<=0)p.cfx=null}p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);p.fakeT=Math.max(0,p.fakeT-dt);p.fakeCd=Math.max(0,p.fakeCd-dt);
   if(p.pend)p.pend.t-=dt;
-  if(p.anim){p.anim.t+=dt;if(p.anim.t>=p.anim.d)p.anim=null}
+  if(p.anim){p.anim.t+=dt*(p.anim.slow||1);if(p.anim.t>=p.anim.d)p.anim=null}
   if(p.dunking){stepDunk(p,o,dt);return}
   if(p.hang>0){p.hang=Math.max(0,p.hang-dt);p.vx=0;p.vy=0;return}
   const can=act&&p.stun<=0&&!(st.ftWait>0)&&!(st.ft&&p!==st.ft.p);
@@ -819,9 +852,10 @@ function stepPlayer(p,o,inp,dt,act){
   if(p.pend&&(p.pend.t<=0||landed)){const pe=p.pend;p.pend=null;if(p.has)launch(p,pe.c)}
   if(p.fall){
     const F=p.fall;F.t+=dt;
-    if(!F.land&&landed){F.land=F.t;F.al=sm(clamp(F.t/.22,0,1))*.95;st.shake=Math.max(st.shake,.3);sfx('bounce')}
+    if(!F.land&&landed){F.land=F.t;F.al=sm(clamp(F.t/.22,0,1))*.95;st.shake=Math.max(st.shake,.3);sfx('bounce');puffDust(p,F.bd||1)}
+    if(F.kind&&!F.thud&&F.t>(F.kind==='jump'?.5:.42)){F.thud=true;puffDust(p,F.bd||1);st.shake=Math.max(st.shake,.35)}
     p.stun=Math.max(p.stun,.25);
-    if(F.land&&F.t-F.land>1.2){p.fall=null;p.stun=.1}
+    if(F.land&&F.t-F.land>(F.rec||1.2)){p.fall=null;p.stun=.1}
   }
   if(landed&&p.bit){p.bit=false;p.stun=.45;msg('FAKED OUT',p.x,p.y-120,'#7fe0d8')}
   if(landed&&p.meter&&p.has){
@@ -882,7 +916,7 @@ function releaseShot(p,o){
     launch(p,{layup:true,u,sgn,anim:pick(LAYUPS)});return;
   }
   if(layupNow(p)){
-    if(Math.random()<.2*(p.ch.dunk||1)*T(p,'dunk',1)){startDunk(p,h,pick(LONG_DUNKS),true);return}
+    if(Math.random()<.05*(p.ch.dunk||1)*T(p,'dunk',1)){startDunk(p,h,pick(LONG_DUNKS),true);return}
     launch(p,{layup:true,u,sgn,anim:pick(LAYUPS)});return;
   }
   let an='jumper';
@@ -988,8 +1022,7 @@ function launch(p,c){
   if(st.ft&&st.ft.p===p&&tier!=='green')S=Math.min(S,tier==='red'?8:6);
   /* a contested miss is physically worse: the early/late target offset grows with the contest, and heavily contested (over 40%) it grows a lot */
   if((tier==='yellow'||tier==='orange')&&!c.layup){
-    const mul=1+.6*cp+1.1*clamp((cp-.4)/.6,0,1);
-    aimX=h.x+(aimX-h.x)*mul;
+    aimX=h.x+(aimX-h.x)*missMul(cp,false);
   }
   b.x=sx;b.y=sy;
   /* spin: backspin on jumpers, topspin on layups */
@@ -1000,14 +1033,14 @@ function launch(p,c){
      Jumpers peak well above the rim; layups peak just above their glass target so the ball is dropping when it reaches it. */
   let apexY=c.layup?aimY-25:Math.max(48,RIMY-118-dist*.02)+(Math.random()*12-6);
   /* a non-green release under heavy contest (over 40%) goes up higher to get over the defender. A green stays exact */
-  if(!sure&&!c.layup&&cp>.4)apexY=Math.max(28,apexY-18*clamp((cp-.4)/.6,0,1));
+  if(!sure&&!c.layup)apexY=Math.max(20,apexY-lerpK(LIFT_K,cp));
   const av=arcVel(sx,sy,aimX,aimY,apexY);
   b.vx=av.vx+gauss()*S;
   b.vy=av.vy+gauss()*S*.6;
   b.state='air';b.owner=null;
   b.shot={by:p,pts,tier,outcome:c.lo,cover:1-t.cm,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95,sure,ft:!!(st.ft&&st.ft.p===p),layup:!!c.layup,hits:0,hitsMax:c.layup?1+Math.floor(Math.random()*3):0,lastHit:-9};b.noPick={p,t:.4};
   p.has=false;
-  if(!c.keepAnim){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d};announce(p,nm)}
+  if(!c.keepAnim){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d,slow:ANIMS[nm].slow||1};announce(p,nm)}
   msg(label,p.x,p.y-120,col);sfx('tick');
 }
 function startDunk(p,h,style,long){
@@ -1019,26 +1052,59 @@ function startDunk(p,h,style,long){
   announce(p,style,true);
 }
 function stepDunk(p,o,dt){
-  const d=p.dunking;d.t+=dt;
+  const d=p.dunking;d.t+=dt*(d.slowT>0?.6:1);if(d.slowT>0)d.slowT-=dt;
   const s=Math.min(1,d.t/d.dur),e=s*s*(3-2*s);
-  /* a defender who is in front of the dunker and in the air when he rises gets dunked on: he is hit in the air and falls over */
-  if(d.roll&&!d.poster&&s>=.3&&s<.95&&!o.fall&&!o.dunking){
+  /* a defender guarding the paint between the dunker and the hoop makes it a poster attempt, decided once:
+     standing if he is on the floor, jumping if he is in the air contesting. The odds come from the stats (see posterOdds) */
+  if(d.ptype===undefined&&s>=.3&&!o.fall&&!o.dunking&&d.style!=='backboard'){
     const front=(o.x-p.x)*p.ad>-8&&(d.tx-o.x)*p.ad>-70&&Math.abs(o.x-p.x)<150;
-    if(front&&o.y<FLOOR-22){d.poster=true;startFall(o,p)}
+    d.ptype=front?(o.y<FLOOR-22?'jump':'stand'):null;
+    if(front)d.pOK=Math.random()<posterOdds(p,o,d.ptype);
+  }
+  /* contact: the moment the bodies touch. The dunker slows a little as he powers through, passing his forward speed to the defender */
+  const touchX=12*(p.ch.sc||1)+12*(o.ch.sc||1)+3;
+  if(d.ptype&&!d.contact&&!o.fall&&Math.abs(o.x-p.x)<touchX&&Math.abs(o.y-p.y)<70){
+    d.contact=true;d.slowT=.28;
+    if(d.pOK){
+      d.hit=true;startFall(o,p,d.ptype);
+      st.hitstop=.06;st.shake=Math.max(st.shake,.6);sfxSlam();
+      msg('POSTER!',p.x+p.face*30,p.y-130,'#ffd34d');
+    }
   }
   if(d.poster)d.pk=Math.min(1,(d.pk||0)+dt*6);
   p.x=d.sx+(d.tx-d.sx)*e;
   p.y=d.sy+(d.ty-d.sy)*e-Math.sin(Math.PI*s)*((d.long?60:14)+34*(d.pk||0));
   p.vx=0;p.vy=0;
   if(s<1)return;
-  p.dunking=null;p.has=false;
+  p.dunking=null;p.has=false;p.afterDunk=true;
   const b=st.ball,h=hoops[p.atk];
-  const rejectable=!d.poster&&o.y<FLOOR-40&&Math.abs(o.x-d.tx)<o.ch.reach+T(o,'reach',0)+34;
+  const rejectable=!d.hit&&o.y<FLOOR-40&&Math.abs(o.x-d.tx)<o.ch.reach+T(o,'reach',0)+34;
   if(rejectable){
     b.x=p.x+p.face*14;b.y=p.y-70;
     blockBall(o,p,'REJECTED!',o.x+o.face*6,o.y-100);return;
   }
-  b.state='air';b.owner=null;b.x=h.x-p.ad*4;b.y=RIMY-14;b.vx=0;b.vy=260;
+  if(d.style==='backboard'&&!d.poster){
+    /* off the backboard: the ball is thrown at the glass and banks down through the rim. A bank solve keeps it a sure make */
+    const bank=solveBank(p.x,p.y-70,h);
+    if(bank){
+      const apex=Math.max(20,Math.min(p.y-70,bank.y)-70);
+      const av=arcVel(p.x,p.y-70,bank.x,bank.y,apex);
+      b.x=p.x;b.y=p.y-70;b.vx=av.vx;b.vy=av.vy;b.bbE=BB_E;b.w=1;b.state='air';b.owner=null;
+      b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,sure:true,long:true,poster:false};b.noPick={p,t:.5};
+      p.flash=.3;p.hang=.6;return;
+    }
+  }
+  if(d.contact&&!d.hit){
+    /* a failed poster: the ball clanks hard off the front rim and comes loose */
+    b.x=h.x-p.ad*RIMH;b.y=RIMY-14;b.vx=-p.ad*150;b.vy=120;b.state='air';b.owner=null;
+    b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,brick:true,noscore:true,long:d.long,poster:false,open:false};
+    b.noPick={p,t:.4};p.hang=.6;st.shake=Math.max(st.shake,.3);
+    sfxImpact('rim',420);msg('CLANK!',h.x,RIMY-40,'#ef4f48');
+    return;
+  }
+  d.poster=!!d.hit;
+  if(d.poster)burstPosterSparks(h.x,RIMY);
+  b.state='air';b.owner=null;b.x=h.x-p.ad*4;b.y=RIMY-14;b.vx=0;b.vy=d.poster?420:260;
   b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,long:d.long,poster:!!d.poster,open:Math.abs(o.x-p.x)>110};b.noPick={p,t:.5};
   p.flash=.3;
   if(d.poster){
@@ -1046,19 +1112,54 @@ function stepDunk(p,o,dt){
     p.anim={n:Math.random()<.5?'chestpound':'flex',t:0,d:1};
   }else p.hang=.6;
 }
+/* poster odds from the existing stats: athleticism is the jump rating, height is the body scale, and defense is the steal and block ratings.
+   A takeover adds a big boost. A jumping poster is harder than a standing one. Everyone can attempt. */
+function posterOdds(p,o,type){
+  const ath=clamp((p.ch.jump-500)/120,0,1),hgt=clamp(((p.ch.sc||1)-.92)/.25,0,1);
+  const dDef=clamp(.5*((o.ch.blkW||.3)-.15)/.45+.5*((o.ch.stl||.6)-.5)/.4,0,1),dHgt=clamp(((o.ch.sc||1)-.92)/.25,0,1);
+  const base=.2+.55*ath+.25*hgt+(p.tkOn?.3:0),pen=.35*dDef+.2*dHgt;
+  return clamp(type==='jump'?base-pen-.2:base-pen*.6+.05,.05,.95);
+}
+function sfxSlam(){
+  if(muted)return;
+  try{
+    const t=audioNow();
+    pitchTone(t,140,38,.42,'sine',.7);
+    noiseBurst(t,.16,'lowpass',900,200,.8,.4);
+    pitchTone(t,520,180,.12,'triangle',.12);
+  }catch(e){}
+}
+/* gold and orange sparks off the rim on a poster */
+function burstPosterSparks(x,y){
+  for(let i=0;i<22;i++){
+    const a=-Math.PI/2+(Math.random()-.5)*2.4,sp=160+Math.random()*260;
+    emit({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:.45+Math.random()*.3,size:2+Math.random()*2.5,col:Math.random()<.5?'#ffd34d':'#ff9a2e',g:420,add:true,shrink:true});
+  }
+}
 /* the defender is knocked backward in the air, then crashes to the floor and lies there before getting up */
-function startFall(o,by){
-  o.fall={t:0,land:0,al:0};
-  o.face=-by.ad;o.vx=by.ad*100;o.meter=null;o.pend=null;o.anim=null;o.dash=0;o.bit=false;o.stun=.5;
+function startFall(o,by,kind){
+  o.fall={t:0,land:0,al:0,kind:kind||null,bd:by.ad,rec:1.85};
+  /* a standing poster has nothing to land from, so the fall starts on the floor */
+  if(kind==='stand')o.fall.land=.0001;
+  o.face=-by.ad;o.vx=by.ad*25;o.meter=null;o.pend=null;o.anim=null;o.dash=0;o.bit=false;o.stun=.5;
   sfx('block');
 }
 function fallPose(p){
   const F=p.fall,f=p.face;
-  if(!F.land){
-    const k=sm(clamp(F.t/.22,0,1));
-    return {lean:.95*k,a1:2.4+.4*k,a2:2.1,legs:[10,-22,-8,-16],dy:-3*k};
+  /* a poster fall: the defender pivots on his heels and goes straight back onto his back (lean 1.5 is flat), lies a beat,
+     then gets up. One continuous curve, so nothing snaps. The feet sit on the floor line at every lean. */
+  const mix=(a,b,k)=>a+(b-a)*k;
+  /* feet at world offsets +-c from the hips' line: local = R(-lean) * (wx,0), so they stay on the floor at any lean */
+  const planted=(f,lean,c)=>{const th=-f*lean,cs=Math.cos(th),sn_=Math.sin(th);return [-f*c*cs,c*sn_,f*c*cs,-c*sn_]};
+  if(F.kind==='stand'||F.kind==='jump'){
+    const t=F.t,bk=F.bd||1,T=F.kind==='jump'?.5:.42;
+    const fall=clamp(t/T,0,1)**2;                 /* accelerates like a body under gravity */
+    const rise=sm(clamp((t-.95)/.9,0,1));         /* lies about half a second, then gets up */
+    const lean=1.5*fall*(1-rise);
+    const flail=Math.sin(t*20)*.18*(1-rise)*(1-sm(clamp((t-T)/.2,0,1)));
+    return{lean,a1:mix(1.9+flail,-.45,rise),a2:mix(1.2,-1.3,rise),legs:planted(f,lean,mix(10,5,rise)),hip:9*Math.sin(Math.PI*rise),dx:bk*6*fall*(1-rise),dy:0};
   }
-  const u=F.t-F.land,down=sm(clamp(u/.2,0,1)),up=sm(clamp((u-.85)/.3,0,1)),k=down*(1-up);
+  const R=F.rec||1.2,u=F.t-F.land,down=sm(clamp(u/.2,0,1)),up=sm(clamp((u-R*.7)/(R*.25),0,1)),k=down*(1-up);
   const lean=(F.al+(1.52-F.al)*down)*(1-up);
   return {lean,a1:2.4-.9*down,a2:2.1-1.1*down,legs:[10-4*down,-22+18*down,-8-4*down,-16+12*down],dx:f*34*k,dy:-9*k};
 }
@@ -1082,19 +1183,28 @@ function handPosR(p,noPose){
 /* ---------- ball ---------- */
 /* A block knocks the ball away toward the shooter's backcourt; now and then the blocker snatches it. */
 /* the defender's hand: a circle placed by his height (body scale) and arm reach, so a long-armed big reaches far higher than a small guard */
-function handBox(o){
+/* forBlock: the block check uses a hand/forearm radius 35-40% larger (37.5%). Goaltending and the snatch placement keep the original radius. */
+const BLOCK_HAND_SCALE=1.375; /* 37.5%: inside the 35-40% range */
+function handBox(o,forBlock){
   const sc=o.ch.sc||1,arm=(o.ch.reach||40)+T(o,'reach',0);
-  return {x:o.x+o.face*(6+arm*.12),y:o.y-(70*sc+arm*.9),r:9+arm*.14,arm};
+  if(!forBlock)return {x:o.x+o.face*(6+arm*.12),y:o.y-(70*sc+arm*.9),r:9+arm*.14,arm,pts:null};
+  /* the block hitbox follows the rendered arm: the hand, and a point mid-forearm between the shoulder and the hand */
+  const hp=handPos(o),shx=o.x,shy=o.y-58*sc,r=(9+arm*.14)*BLOCK_HAND_SCALE;
+  const mid={x:(shx+hp.x)/2,y:(shy+hp.y)/2,r:r*.8};
+  return {x:hp.x,y:hp.y,r,arm,pts:[mid,{x:hp.x,y:hp.y,r}]};
 }
 function blockBall(o,sh,label,cx,cy,bull){
   const b=st.ball;
+  /* a foul called on this shot still counts: the free throws are queued before the shot is cleared */
+  const fs=b.shot;
+  if(fs&&fs.foul&&!fs.ft&&!fs.scored&&!st.ftPending){st.ftPending={p:sh,n:fs.pts===3?3:2};st.phase='goal';st.pt=1.2}
   st.missBy=sh;b.shot=null;tkGain(sh,'miss');
   o.stat.blk++;tkGain(o,'blk');
   /* an ultra-rare snatch: a bullseye hit near the top of the jump, about 8% (a little more for elite blockers). The ball goes straight into his hands */
   if(bull){
     const pr=.08+.05*clamp(((o.ch.blkW||.3)-.3)/.4,0,1)+.03*clamp(T(o,'blk',0)/.25,0,1);
     if(Math.random()<pr){
-      const hb=handBox(o);b.x=hb.x;b.y=hb.y;b.vx=0;b.vy=0;
+      const hb=handBox(o,true);b.x=hb.x;b.y=hb.y;b.vx=0;b.vy=0;
       give(o);
       st.hitstop=.08;st.shake=Math.max(st.shake,.2);
       sfxSnatch();cheer(.9,1.6);burstBlock(hb.x,hb.y,true);
@@ -1129,9 +1239,10 @@ function rimDecide(){
 }
 function touchRim(speed,board){
   const b=st.ball,s=b.shot;
+  if(s&&board)s.boardHit=true;
   if(s&&s.brick&&!s.kicked){
     /* a brick: the ball clanks off the rim or board and is thrown back toward the shooter */
-    s.kicked=true;s.noscore=true;
+    s.kicked=true;s.noscore=true;tkGain(s.by,'miss');s.clankDone=true;
     b.vx=-s.by.ad*(150+Math.random()*100);b.vy=-(260+Math.random()*140);
   }
   if(b.state==='air')b.state='loose';
@@ -1225,13 +1336,21 @@ function stepBall(dt,live){
   const sh=s.by,o=st.p[1-sh.idx];
   /* a block: the hand circle hits a ball that is still rising. The hand is only live while the defender is going up or at the top of his jump,
      so a short defender has to jump early, near the release, to get a hand up to a taller shooter's ball */
-  if(!s.dunk&&!s.ft&&!s.sure&&!s.rimTouched&&b.vy<0&&o.y<FLOOR-6&&o.vy<=50){
-    const hb=handBox(o);
-    if(Math.hypot(b.x-hb.x,b.y-hb.y)<hb.r*.8+R*.7){
+  /* the chase-down: the ball is at the backboard and not coming down. Either it has bounced off the board and is going back up,
+     or it is just reaching the board and starts to fall. A defender behind the ball, running toward it, who jumps for it is a chase-down. */
+  const hoop=hoops[sh.atk],hoopX=hoop.x,away=Math.sign(b.x-hoopX)||1;
+  const atBoard=Math.abs(b.x-hoop.bx)<45&&b.y>RIMY-90&&b.y<RIMY+40&&(s.boardHit?b.vy<0:b.vy<=40);
+  const behind=Math.sign(o.x-b.x)===away;
+  const running=Math.sign(o.vx)===Math.sign(b.x-o.x)&&Math.abs(o.vx)>=o.ch.spd*.3;
+  const chase=atBoard&&behind&&running;
+  if(!s.dunk&&!s.ft&&!s.sure&&(chase||(!s.rimTouched&&b.vy<0))&&o.y<FLOOR-6&&o.vy<=50){
+    const hb=handBox(o,true);
+    if(hb.pts.some(q=>Math.hypot(b.x-q.x,b.y-q.y)<q.r*.8+R*.7)){
       /* a bullseye: the ball's path passes within 5px of the hand's center, at the top of the jump */
       const rx=hb.x-b.x,ry=hb.y-b.y,vx=b.vx-o.vx,vy=b.vy-o.vy,sp=Math.hypot(vx,vy)||1;
       const dmin=(rx*vx+ry*vy)>0?Math.abs(rx*vy-ry*vx)/sp:Math.hypot(rx,ry);
-      blockBall(o,sh,'BLOCKED!',hb.x,hb.y,dmin<5&&Math.abs(o.vy)<160);
+      if(chase)msg('CHASE-DOWN!',hb.x,hb.y-50,'#7ad7ff');
+      blockBall(o,sh,chase?'CHASE-DOWN BLOCK!':'BLOCKED!',hb.x,hb.y,dmin<5&&Math.abs(o.vy)<160);
       return true;
     }
   }
@@ -1276,7 +1395,6 @@ function updateBall(dt,live){
       tx=p.x+p.face*18*sc;ty=p.y-(16+bounce)*sc;
     }
     /* a free throw: the shooter pound-dribbles the ball on the floor twice before the shot */
-    if(st.ft&&st.ftWait>0&&p===st.ft.p){tx=p.x+p.face*12;ty=FLOOR-R-40*Math.abs(Math.sin(2*Math.PI*(1-st.ftWait)))}
     /* a dash: one big dribble that bounces once in the direction of the dash */
     if(p.dash>0&&p.has&&!st.ft){const fwd=p.dashDir===p.face,pr=clamp(1-p.dash/.26,0,1);tx=p.x+p.face*(fwd?26:12);ty=FLOOR-R-50*Math.abs(Math.cos(Math.PI*pr))}
     /* ease toward the hand so the ball never snaps between poses */
@@ -1327,8 +1445,9 @@ function scoreShot(s){
   if(!s.rimTouched&&!s.dunk&&!s.gt)swishPuff(h.x,RIMY+26);
   if(s.foul&&!s.ft)st.ftPending={p,n:1};
   if(s.ft&&st.ft)st.ft.left--;
-  tkGain(p,s.dunk?'dunk':s.pts===3?'three':'two');
-  if(s.long||s.poster)tkGain(p,'poster');
+  tkGain(p,s.ft?'ftMade':s.dunk?'dunk':s.pts===3?'three':'two');
+  /* a made poster is worth the same as a made dunk: no extra poster bonus on top (long dunks keep theirs) */
+  if(s.long&&!s.poster)tkGain(p,'poster');
   if(s.open)tkGain(st.p[1-p.idx],'open');
   st.phase='goal';st.pt=1.5;st.shake=.25;st.concede=st.p[1-p.idx];
   msg(s.dunk?'DUNK +2':'+'+s.pts,h.x-h.s*60,RIMY+70,'#ffb347');
@@ -1374,7 +1493,7 @@ function tipStep(dt){
     if(want&&!T.tapped&&p.y>=FLOOR){p.vy=-p.ch.jump;p.tj=T.t;p.anim={n:'tipjump',t:0,d:1}}
     p.vy+=PG*dt;p.y+=p.vy*dt;
     if(p.y>=FLOOR){p.y=FLOOR;p.vy=0}
-    if(p.anim){p.anim.t+=dt;if(p.anim.t>=p.anim.d)p.anim=null}
+    if(p.anim){p.anim.t+=dt*(p.anim.slow||1);if(p.anim.t>=p.anim.d)p.anim=null}
   }
   if(!T.tapped){
     /* the ball is tossed up and falls; whoever's hand reaches it first wins the tip */
@@ -1444,12 +1563,17 @@ function update(dt){
     for(const p of st.p)if(p.tkOn&&!st.ft){p.to-=dt/TK_DUR;if(p.to<=0){p.to=0;p.tkOn=false;msg('TAKEOVER OVER',p.x,p.y-130,'#9db2c4')}}
     updatePlayers(dt,true);updateBall(dt,true);
     const bl=st.ball,settled=bl.y>=FLOOR-R-.5&&Math.abs(bl.vy)<1&&Math.abs(bl.vx)<10;
-    if(st.time<=0&&!bl.shot&&bl.state!=='air'&&(bl.state==='held'||settled)&&!st.p[0].dunking&&!st.p[1].dunking)checkEnd();
+    /* the phase check stops the game ending when a miss on the final clock just set up a foul shot (shotMiss moves the phase to 'goal') */
+    if(st.phase==='play'&&st.time<=0&&!bl.shot&&bl.state!=='air'&&(bl.state==='held'||settled)&&!st.p[0].dunking&&!st.p[1].dunking)checkEnd();
     return;
   }
   if(st.phase==='goal'){
     st.pt-=dt;updatePlayers(dt,false);updateBall(dt,false);
-    if(st.pt<=0){
+    /* a poster: the stoppage waits while the defender falls and gets up, then a short beat before the next possession */
+    if(st.pt<=0&&st.p.some(q=>q.fall)){st.pt=0;st.posterWait=.5}
+    else if(st.pt<=0&&st.posterWait>0){st.posterWait-=dt;st.pt=0}
+    else if(st.pt<=0){
+      st.posterWait=0;
       if(st.ftPending)startFT();
       else if(st.ft&&st.ft.left>0)ftSetup();
       else{st.ft=null;if(!checkEnd()){resetPositions(st.concede);st.phase='count';st.pt=1.1}}
@@ -1486,7 +1610,6 @@ function ftSetup(){
   st.phase='play';st.ftWait=1;
   give(p);
   if(p.ai)p.ai.ftT=undefined;
-  p.anim={n:'dribble',t:0,d:1};
   msg('FREE THROW',p.x,p.y-130,'#ffd166');
 }
 
@@ -1809,13 +1932,13 @@ function restPose(p){
   const f=p.face,sc=p.ch.sc||1,air=p.y<FLOOR-2||!!p.dunking,sw=Math.sin(p.run)*(air?3:10);
   const hd=handPos(p,true),lx=(hd.x-p.x)/sc,ly=(hd.y-p.y)/sc;
   return {dx:0,dy:0,lean:0,sx:1,a1:Math.atan2(-(ly+56),f*lx),L1:Math.hypot(lx,ly+56),a2:-1.3,L2:34,a2w:0,
-    legs:[f*(-5+(air?-6:sw)),air?-8:0,f*(5+(air?6:-sw)),air?-14:0]};
+    legs:[f*(-5+(air?-6:sw)),air?-8:0,f*(5+(air?6:-sw)),air?-14:0],hip:0};
 }
 function fullPose(pz,r){
   return {dx:pz.dx||0,dy:pz.dy||0,lean:pz.lean||0,sx:pz.sx===undefined?1:pz.sx,
     a1:pz.a1===undefined?r.a1:pz.a1,L1:pz.a1===undefined?r.L1:(pz.L1||34),
     a2:pz.a2===undefined?r.a2:pz.a2,L2:pz.a2===undefined?r.L2:(pz.L2||34),a2w:pz.a2===undefined?0:1,
-    legs:pz.legs||r.legs};
+    legs:pz.legs||r.legs,hip:pz.hip||0};
 }
 function smoothPose(p){
   const raw=getPose(p),r=restPose(p);
@@ -1824,7 +1947,7 @@ function smoothPose(p){
   if(!p.sp)p.sp=r;
   const s=p.sp,k=1-Math.exp(-drawDt*(raw&&raw.sx!==undefined?60:38));
   let gap=0;
-  for(const key of ['dx','dy','sx','a1','L1','a2','L2','a2w','lean']){
+  for(const key of ['dx','dy','sx','a1','L1','a2','L2','a2w','lean','hip']){
     const d=tg[key]-s[key];s[key]+=d*k;gap=Math.max(gap,Math.abs(d)*(key==='dx'||key==='dy'||key==='L1'||key==='L2'?.05:1));
   }
   for(let i=0;i<4;i++){const d=tg.legs[i]-s.legs[i];s.legs[i]+=d*k;gap=Math.max(gap,Math.abs(d)*.05)}
@@ -1854,6 +1977,7 @@ function drawPlayer(p){
   if(p.dash>0&&!p._ghost){const g=Object.create(p);g._ghost=true;g.x=p.x-p.dashDir*30;ctx.save();ctx.globalAlpha=.25;drawPlayer(g);ctx.restore()}
   const x=p.x,y=p.y,f=p.face,sc=p.ch.sc||1,pz=smoothPose(p);
   const skin=p.ch.skin||'#f0c8a3',skin2=p.ch.skin2||'#d2a781',kit=kitOf(p);
+  const hp=pz.hip||0;
   const layupAnim=p.anim&&LAYUPS.some(q=>q[0]===p.anim.n);
   const tongue=p.ch.look==='jordan'&&(!!p.dunking||layupAnim||(p.anim&&p.anim.n==='shrug'));
   ctx.save();
@@ -1876,9 +2000,10 @@ function drawPlayer(p){
   const air=y<FLOOR-2||!!p.dunking,sw=Math.sin(p.run)*(air?3:10);
   ctx.lineCap='round';ctx.strokeStyle=skin2;ctx.lineWidth=7;
   ctx.beginPath();
-  if(pz.legs){const L=pz.legs;ctx.moveTo(-5,-26);ctx.lineTo(f*L[0],L[1]);ctx.moveTo(5,-26);ctx.lineTo(f*L[2],L[3])}
-  else{ctx.moveTo(-5,-26);ctx.lineTo(-5+(air?-6:sw),air?-8:0);ctx.moveTo(5,-26);ctx.lineTo(5+(air?6:-sw),air?-14:0)}
+  if(pz.legs){const L=pz.legs;ctx.moveTo(-5,-26+hp);ctx.lineTo(f*L[0],L[1]);ctx.moveTo(5,-26+hp);ctx.lineTo(f*L[2],L[3])}
+  else{ctx.moveTo(-5,-26+hp);ctx.lineTo(-5+(air?-6:sw),air?-8:0);ctx.moveTo(5,-26+hp);ctx.lineTo(5+(air?6:-sw),air?-14:0)}
   ctx.stroke();
+  ctx.translate(0,hp);
   const arm=(a,col,Ln)=>{const L=Ln||34;ctx.strokeStyle=col;ctx.lineWidth=5;ctx.beginPath();ctx.moveTo(0,-56);ctx.lineTo(f*Math.cos(a)*L,-56-Math.sin(a)*L);ctx.stroke()};
   if(pz.a2!==undefined){const ga=ctx.globalAlpha;ctx.globalAlpha=ga*(pz.a2w===undefined?1:clamp(pz.a2w,0,1));arm(pz.a2,skin2,pz.L2);ctx.globalAlpha=ga}
   /* jersey, then shorts */
