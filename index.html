@@ -624,7 +624,9 @@ const DUNKS={
   dunk180:{dur:.48,pose:s=>({sx:Math.cos(PI*s),a1:2.6-3.2*sm(s),a2:1.8-1.4*sm(s),legs:[10,-14,-8,-12],lean:-.1*sn(PI*s)})},
   jordan:{dur:.58,pose:s=>({a1:s<.7?-.3+3.3*(s/.7):3-3.6*((s-.7)/.3),a2:.3,legs:[24,-10,-22,-16],lean:-.1*sn(PI*s)})},
   threesixty:{dur:.5,pose:s=>({sx:Math.cos(2*PI*s),a1:2.8-3.4*sm(s),a2:2,legs:[8,-14,-8,-10]})},
-  backboard:{dur:.6,pose:s=>({a1:s<.5?.6+1.9*sm(s/.5):2.5-3.1*sm((s-.5)/.5),a2:s<.5?1.2:.4,legs:[16,-14,-12,-14],lean:-.12*sn(PI*s)})}
+  backboard:{dur:.9,pose:(s,slam)=>{
+    if(slam==='windmill'&&s>=.55){const k=sm(clamp((s-.55)/.45,0,1));return{a1:2.4-6.28*k,a2:.9-.4*sn(PI*k),legs:[16,-12,-14,-12],lean:-.12*sn(PI*s)}}
+    return{a1:s<.5?.6+1.9*sm(s/.5):2.5-3.1*sm((s-.5)/.5),a2:s<.5?1.2:.4,legs:[16,-14,-12,-14],lean:-.12*sn(PI*s)}}}
 };
 const NAMES={layup:'LAYUP',fingerroll:'FINGER ROLL',scoop:'SCOOP',floater:'FLOATER',eurostep:'EURO STEP',reverse:'REVERSE',teardrop:'TEARDROP',
   upunder:'UP & UNDER',doubleclutch:'DOUBLE CLUTCH',behindback:'BEHIND THE BACK',
@@ -644,7 +646,7 @@ const LONG_DUNKS=[['jordan',1],['threesixty',1],['backboard',1]];
 function getPose(p){
   if(p.fall)return fallPose(p);
   const d=p.dunking;
-  if(d)return DUNKS[d.style].pose(Math.min(1,d.t/d.dur));
+  if(d)return DUNKS[d.style].pose(Math.min(1,d.t/d.dur),d.slam);
   if(p.hang>0){const k=p.hang*14;return{a1:.9,a2:.9,legs:[-4+sn(k)*5,-10,4+Math.cos(k)*5,-6]}}
   if(p.anim){const sp=ANIMS[p.anim.n];if(sp)return sp.pose(Math.min(1,p.anim.t/p.anim.d))}
   /* airborne: the arm goes up with the jump. A shooter with the ball raises it to shoot, a defender reaches up to contest */
@@ -1047,13 +1049,33 @@ function startDunk(p,h,style,long){
   p.meter=null;p.face=p.ad;p.stat.fga++;
   const spec=DUNKS[style],o=st.p[1-p.idx],tx=h.x-p.ad*44;
   /* if a defender jumps in front of the dunker, this roll decides whether he gets posterized (see stepDunk) */
-  p.dunking={t:0,dur:long?spec.dur*1.55:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8,hang:true};
+  p.dunking={t:0,dur:long?spec.dur*1.55:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8,hang:true,slam:Math.random()<.5?'windmill':'twohand'};
   msg('DUNK',p.x,p.y-120,'#ffb347');
   announce(p,style,true);
 }
 function stepDunk(p,o,dt){
   const d=p.dunking;d.t+=dt*(d.slowT>0?.6:1);if(d.slowT>0)d.slowT-=dt;
   const s=Math.min(1,d.t/d.dur),e=s*s*(3-2*s);
+  /* the off-the-backboard dunk: a real throw. The dunker tosses the ball at the glass on a plain arc, the ball bounces off the board
+     with the normal physics, and the dunker jumps to catch it on its way back and slams it (windmill or two-hand) */
+  if(d.style==='backboard'&&!d.poster){
+    const hoop=hoops[p.atk],b=st.ball;
+    if(!d.thrown&&s>=.12&&p.has){
+      d.thrown=true;p.has=false;
+      const hand=handPos(p),x1=hoop.bx-hoop.s*(R-8),y1=RIMY-70;
+      b.state='air';b.owner=null;b.shot=null;b.x=hand.x;b.y=hand.y;
+      /* a high arc that clears the rim and comes down on the glass above it */
+      const av=arcVel(hand.x,hand.y,x1,y1,y1-16);b.vx=av.vx;b.vy=av.vy;
+      b.noPick={p,t:1.2};d.dir=Math.sign(b.vx)||1;
+    }
+    if(d.thrown&&!d.caught){
+      const hand=handPos(p);
+      /* the ball is heading back toward the dunker once it has come off the glass */
+      if(b.vx*d.dir<0)d.back=true;
+      const near=Math.hypot(b.x-hand.x,b.y-hand.y)<64;
+      if((d.back&&near)||s>=.8){d.caught=true;b.state='held';b.owner=p;b.vx=0;b.vy=0;p.has=true;b.noPick=null}
+    }
+  }
   /* a defender guarding the paint between the dunker and the hoop makes it a poster attempt, decided once:
      standing if he is on the floor, jumping if he is in the air contesting. The odds come from the stats (see posterOdds) */
   if(d.ptype===undefined&&s>=.3&&!o.fall&&!o.dunking&&d.style!=='backboard'){
@@ -1083,27 +1105,7 @@ function stepDunk(p,o,dt){
     b.x=p.x+p.face*14;b.y=p.y-70;
     blockBall(o,p,'REJECTED!',o.x+o.face*6,o.y-100);return;
   }
-  if(d.style==='backboard'&&!d.poster){
-    /* off the backboard: the ball is thrown at the glass and banks down through the rim. A bank solve keeps it a sure make */
-    const bank=solveBank(p.x,p.y-70,h);
-    if(bank){
-      const apex=Math.max(20,Math.min(p.y-70,bank.y)-70);
-      const av=arcVel(p.x,p.y-70,bank.x,bank.y,apex);
-      b.x=p.x;b.y=p.y-70;b.vx=av.vx;b.vy=av.vy;b.bbE=BB_E;b.w=1;b.state='air';b.owner=null;
-      b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,sure:true,long:true,poster:false};b.noPick={p,t:.5};
-      p.flash=.3;p.hang=.6;return;
-    }
-  }
-  if(d.contact&&!d.hit){
-    /* a failed poster: the ball clanks hard off the front rim and comes loose */
-    b.x=h.x-p.ad*RIMH;b.y=RIMY-14;b.vx=-p.ad*150;b.vy=120;b.state='air';b.owner=null;
-    b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,brick:true,noscore:true,long:d.long,poster:false,open:false};
-    b.noPick={p,t:.4};p.hang=.6;st.shake=Math.max(st.shake,.3);
-    sfxImpact('rim',420);msg('CLANK!',h.x,RIMY-40,'#ef4f48');
-    return;
-  }
-  d.poster=!!d.hit;
-  if(d.poster)burstPosterSparks(h.x,RIMY);
+  /* every dunk, long or close, drops straight through the middle of the rim with no arc, so nothing bounces off the front rim */
   b.state='air';b.owner=null;b.x=h.x-p.ad*4;b.y=RIMY-14;b.vx=0;b.vy=d.poster?420:260;
   b.shot={by:p,pts:2,sup:false,scored:false,t:0,dunk:true,long:d.long,poster:!!d.poster,open:Math.abs(o.x-p.x)>110};b.noPick={p,t:.5};
   p.flash=.3;
@@ -1322,6 +1324,7 @@ function stepBall(dt,live){
   const hs=s?hoops[s.by.atk]:null;
   for(const h of hoops){
     const c=hoopContact(b,h);
+    if(!s&&c.bb>0){h.bV=(h.bV||0)+h.s*clamp(c.bb*.2,0,85);sfxImpact('board',c.bb)}
     if(!s||h!==hs)continue;
     /* visual only: the board and the rim give a little on impact (2-4px), the colliders never move */
     if(c.bb>0){h.bV=(h.bV||0)+h.s*clamp(c.bb*.2,0,85);touchRim(c.bb,true)}
@@ -1340,7 +1343,8 @@ function stepBall(dt,live){
      or it is just reaching the board and starts to fall. A defender behind the ball, running toward it, who jumps for it is a chase-down. */
   const hoop=hoops[sh.atk],hoopX=hoop.x,away=Math.sign(b.x-hoopX)||1;
   const atBoard=Math.abs(b.x-hoop.bx)<45&&b.y>RIMY-90&&b.y<RIMY+40&&(s.boardHit?b.vy<0:b.vy<=40);
-  const behind=Math.sign(o.x-b.x)===away;
+  /* behind the ball means on the shooter's side, away from the board */
+  const behind=Math.sign(o.x-b.x)===-away;
   const running=Math.sign(o.vx)===Math.sign(b.x-o.x)&&Math.abs(o.vx)>=o.ch.spd*.3;
   const chase=atBoard&&behind&&running;
   if(!s.dunk&&!s.ft&&!s.sure&&(chase||(!s.rimTouched&&b.vy<0))&&o.y<FLOOR-6&&o.vy<=50){
@@ -2158,8 +2162,8 @@ function draw(){
 const scr=document.getElementById('screen');
 function showScreen(html){scr.innerHTML=html;scr.hidden=false;document.getElementById('pause').hidden=true}
 function hideScreen(){scr.hidden=true;scr.innerHTML=''}
-/* whether shooting fouls and free throws happen in matches (off by default) */
-let foulsOn=false;
+/* whether shooting fouls and free throws happen in matches (on by default, toggled from the home screen) */
+let foulsOn=true;
 function homeScreen(){
   st=null;setKeysHint();
   showScreen(`<div class="card menu"><p class="eyebrow">1v1 street basketball</p><h2>Hoop Stars</h2>
@@ -2362,8 +2366,8 @@ scr.addEventListener('click',e=>{
 /* ---------- input ---------- */
 /* set 1 = Basketball Stars player 1 keys, set 2 = player 2 keys, set 0 = extras for solo play */
 const KEYS=[
-  ['ArrowLeft',1,'l'],['ArrowRight',1,'r'],['ArrowUp',1,'jump'],['ArrowDown',1,'fake'],['KeyL',1,'steal'],['KeyK',1,'sup'],
-  ['KeyA',2,'l'],['KeyD',2,'r'],['KeyW',2,'jump'],['KeyS',2,'fake'],['KeyB',2,'steal'],['KeyV',2,'sup'],
+  ['ArrowLeft',2,'l'],['ArrowRight',2,'r'],['ArrowUp',2,'jump'],['ArrowDown',2,'fake'],['KeyL',2,'steal'],['KeyK',2,'sup'],
+  ['KeyA',1,'l'],['KeyD',1,'r'],['KeyW',1,'jump'],['KeyS',1,'fake'],['KeyB',1,'steal'],['KeyV',1,'sup'],
   ['ShiftLeft',0,'dash'],['ShiftRight',0,'dash'],['Space',0,'jump']
 ];
 const down=new Set(),taps={},pad={l:0,r:0,jump:0};
@@ -2381,13 +2385,13 @@ function poll(){
 function setKeysHint(){
   const el=document.getElementById('keys');if(!el)return;
   el.innerHTML=st&&st.two
-    ?'<b>P1</b> <kbd>←</kbd><kbd>→</kbd> move &middot; <kbd>↑</kbd> jump/shoot &middot; <kbd>\u2193</kbd> fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover &nbsp;|&nbsp; <b>P2</b> <kbd>A</kbd><kbd>D</kbd> move &middot; <kbd>W</kbd> jump/shoot &middot; <kbd>S</kbd> fake &middot; <kbd>B</kbd> steal &middot; <kbd>V</kbd> takeover &nbsp;|&nbsp; double-tap a direction to dash &middot; <kbd>P</kbd> pause'
+    ?'<b>P1</b> <kbd>A</kbd><kbd>D</kbd> move &middot; <kbd>W</kbd> jump/shoot &middot; <kbd>S</kbd> fake &middot; <kbd>B</kbd> steal &middot; <kbd>V</kbd> takeover &nbsp;|&nbsp; <b>P2</b> <kbd>←</kbd><kbd>→</kbd> move &middot; <kbd>↑</kbd> jump/shoot &middot; <kbd>\u2193</kbd> fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover &nbsp;|&nbsp; double-tap a direction to dash &middot; <kbd>P</kbd> pause'
     :'<kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> move &middot; hold <kbd>↑</kbd> or <kbd>W</kbd> to jump, release near the top to shoot &middot; double-tap a direction (or <kbd>Shift</kbd>) to dash &middot; <kbd>S</kbd> or <kbd>\u2193</kbd> pump fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover &middot; <kbd>P</kbd> pause';
 }
 function showBinds(){
   const el=document.getElementById('binds');if(!el||!st)return;
   el.innerHTML=st.two
-    ?'<div class="bgrid"><span><b>P1</b> <kbd>←</kbd><kbd>→</kbd> move</span><span><b>P2</b> <kbd>A</kbd><kbd>D</kbd> move</span><span><b>P1</b> <kbd>↑</kbd> hold to jump, release near the top to shoot</span><span><b>P2</b> <kbd>W</kbd> hold to jump, release near the top to shoot</span><span><b>P1</b> <kbd>↓</kbd> fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover</span><span><b>P2</b> <kbd>S</kbd> fake &middot; <kbd>B</kbd> steal &middot; <kbd>V</kbd> takeover</span><span>double-tap a direction to dash</span><span><kbd>P</kbd> pause</span></div>'
+    ?'<div class="bgrid"><span><b>P1</b> <kbd>A</kbd><kbd>D</kbd> move</span><span><b>P2</b> <kbd>←</kbd><kbd>→</kbd> move</span><span><b>P1</b> <kbd>W</kbd> hold to jump, release near the top to shoot</span><span><b>P2</b> <kbd>↑</kbd> hold to jump, release near the top to shoot</span><span><b>P1</b> <kbd>S</kbd> fake &middot; <kbd>B</kbd> steal &middot; <kbd>V</kbd> takeover</span><span><b>P2</b> <kbd>↓</kbd> fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover</span><span>double-tap a direction to dash</span><span><kbd>P</kbd> pause</span></div>'
     :'<div class="bgrid"><span><kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> move</span><span>hold <kbd>↑</kbd> or <kbd>W</kbd> to jump, release near the top to shoot</span><span><kbd>Shift</kbd> or double-tap to dash</span><span><kbd>↓</kbd> or <kbd>S</kbd> pump fake</span><span><kbd>L</kbd> steal</span><span><kbd>K</kbd> takeover</span><span><kbd>P</kbd> pause</span></div>';
   el.classList.add('on');
 }
