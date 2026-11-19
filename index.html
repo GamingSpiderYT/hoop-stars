@@ -2597,11 +2597,23 @@ homeScreen();
 /* scale the whole game UI with the window so menus and text stay in proportion on any screen */
 function fitZoom(){
   const w=document.getElementById('wrap');if(!w)return;
-  if(w.classList.contains('fs')){w.style.zoom='';return}
-  w.style.zoom='1';
-  const nw=w.offsetWidth,nh=w.offsetHeight;
-  const z=Math.min((innerWidth-16)/Math.max(1,nw),(innerHeight-44)/Math.max(1,nh),2.6);
-  w.style.zoom=Math.max(.55,z).toFixed(3);
+  const stage=w.querySelector('.stage');
+  if(w.classList.contains('fs')){
+    /* fullscreen: lay out at the same design width as the window view, then scale the whole thing to fit */
+    w.style.width='960px';w.style.maxWidth='none';w.style.height='auto';w.style.margin='0';
+    if(stage)stage.style.width='100%';
+    w.style.zoom='1';
+    const nw=w.offsetWidth,nh=w.offsetHeight;
+    const z=Math.max(.55,Math.min((innerWidth-16)/nw,(innerHeight-16)/nh,3));
+    w.style.zoom=z.toFixed(3);
+    w.style.marginLeft=(innerWidth/(2*z)-nw/2)+'px';
+    w.style.marginTop=Math.max(0,innerHeight/(2*z)-nh/2)+'px';
+    return;
+  }
+  /* windowed: normal layout, no scaling */
+  w.style.width='';w.style.maxWidth='';w.style.height='';w.style.margin='';
+  if(stage)stage.style.width='';
+  w.style.zoom='';
 }
 addEventListener('resize',fitZoom);
 document.getElementById('fs').addEventListener('click',()=>setTimeout(fitZoom,60));
