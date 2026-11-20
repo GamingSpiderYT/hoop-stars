@@ -116,6 +116,7 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .card.menu .btn{padding:13px 22px;font-size:clamp(14px,1.5vw,18px);border-radius:999px;font-weight:700;letter-spacing:.08em;text-transform:uppercase}
 .card.menu .btn.primary{background:linear-gradient(135deg,#ffb347,#ff7a3d);color:#1d1000;border-color:transparent;box-shadow:0 8px 18px -10px #ff7a3d}
 .card.menu .btn.primary:hover{filter:brightness(1.08)}
+.btn:disabled,.card.menu .btn.primary:disabled{background:#4a4a52;color:#9a9aa3;box-shadow:none;border-color:transparent;filter:grayscale(1);opacity:.7;cursor:not-allowed}
 .sect{margin:16px 0 6px}
 .tcols{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}
 @media (max-width:640px){.tcols{grid-template-columns:1fr}}
@@ -159,6 +160,9 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .pips i{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.22)}
 .pips i.top{background:#ffd166}
 .pips i.bot{background:#7fe0d8}
+.roomcode{font:700 46px/1 var(--display);letter-spacing:.28em;text-indent:.28em;text-align:center;color:#ffb347;margin:4px 0 8px}
+.roomin{font:700 30px/1 var(--display);letter-spacing:.3em;text-indent:.3em;text-align:center;text-transform:uppercase;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0c1a28;color:var(--ink);width:100%;box-sizing:border-box}
+.netmsg{margin:6px 0;color:#9db2c4;font-size:14px;text-align:center;min-height:1em}
 </style>
 
 <main class="wrap" id="wrap">
@@ -361,6 +365,25 @@ function sfx(k){
     o.frequency.setValueAtTime(f[0],t);o.frequency.exponentialRampToValueAtTime(f[1],t+.12);
     g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);
     o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.17);
+  }catch(e){}
+}
+/* retro 8-bit blip for the startup flash: a quick rising arpeggio of square notes */
+function sfxFlash(){
+  if(muted)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const t0=ac.currentTime;
+    [523,659,784,1047].forEach((f,i)=>{
+      const t=t0+i*.055,o=ac.createOscillator(),g=ac.createGain();
+      o.type='square';o.frequency.setValueAtTime(f,t);
+      g.gain.setValueAtTime(.12,t);g.gain.setValueAtTime(0,t+.05);
+      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.06);
+    });
+    const t=t0+.25,o=ac.createOscillator(),g=ac.createGain();
+    o.type='square';o.frequency.setValueAtTime(1568,t);o.frequency.exponentialRampToValueAtTime(392,t+.22);
+    g.gain.setValueAtTime(.1,t);g.gain.linearRampToValueAtTime(0,t+.24);
+    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.25);
   }catch(e){}
 }
 /* referee whistle: a short two-tone shrill tweet */
@@ -2272,6 +2295,7 @@ function hideScreen(){scr.hidden=true;scr.innerHTML=''}
 /* whether shooting fouls and free throws happen in matches (on by default, toggled from the home screen) */
 let foulsOn=true;
 function homeScreen(){
+  if(net)netClose();
   st=null;setKeysHint();
   showScreen(`<div class="homewrap"><div class="card menu"><p class="eyebrow">1v1 street basketball</p><h2>Hoop Stars</h2>
   <button class="btn primary" data-act="single" type="button">Single player</button>
@@ -2307,13 +2331,23 @@ function teamBlock(key,side,sel,badge,dis,pair){
   return `<div class="tcol"><div class="thead"><button class="arr" data-arrow="${key}|${side}|-1" type="button" aria-label="Previous team">&#8249;</button><h3 style="--c:${t.col}">${t.name}</h3><button class="arr" data-arrow="${key}|${side}|1" type="button" aria-label="Next team">&#8250;</button></div><div class="tlist${pair?' tpair':''}">${cards}</div></div>`;
 }
 function pickScreen(){
+  if(flow.mode==='online'){
+    const me=net,ready=!!(me&&me.myReady),opp=!!(me&&me.oppReady);
+    const friend=`Friend: <b>${CH[flow.ch2].name}</b> · ${opp?'ready':'choosing'}`;
+    const status=ready?(opp?'Starting…':'Waiting for your friend to be ready…'):'Pick your player, then press Ready';
+    showScreen(`<div class="card xl"><h2>Choose your player</h2>
+    <div class="tcols one">${teamBlock('ch','l',i=>flow.ch===i,null,i=>i===flow.ch2,true)}</div>
+    <p class="netmsg">${friend}</p><p class="netmsg">${status}</p>
+    <div class="row"><button class="btn" data-act="back" type="button">Back</button><button class="btn primary" data-act="go" type="button" ${ready?'disabled':''}>${ready?'Ready ✓':'Ready'}</button></div></div>`);
+    return;
+  }
   if(flow.mode==='tour'){
     showScreen(`<div class="card xl"><h2>Choose your player</h2><div class="tcols one">${teamBlock('ch','l',i=>flow.ch===i,null,null,true)}</div>
     <div class="row"><button class="btn" data-act="back" type="button">Back</button><button class="btn primary" data-act="go" type="button">Enter tournament</button></div></div>`);
     return;
   }
   /* two-player and quick match: two separate selectors. A pick greys out on the other side */
-  const two=flow.mode==='two',L=two?['Player 1','Player 2']:['You','CPU'];
+  const two=flow.mode==='two'||flow.mode==='online',L=two?['Player 1','Player 2']:['You','CPU'];
   const diffBlock=two?'':`<h3 class="sect">CPU level</h3><div class="slots">${DIFF.map((d,i)=>`<button class="pick slot ${flow.diff===i?'on':''}" data-diff="${i}" style="--c:#ff9f68" type="button"><small>CPU level</small><b>${d.label}</b></button>`).join('')}</div>`;
   showScreen(`<div class="card xl"><h2>${two?'Set up the players':'Set up the match'}</h2>
   <div class="tcols"><div class="side"><p class="sidelbl">${L[0]}</p>${teamBlock('ch','l',i=>flow.ch===i,null,i=>i===flow.ch2)}</div><div class="side"><p class="sidelbl">${L[1]}</p>${teamBlock('op','l',i=>flow.ch2===i,null,i=>i===flow.ch)}</div></div>${diffBlock}
@@ -2434,6 +2468,7 @@ function onEnd(res){
   },1100);
 }
 function launchMatch(){
+  if(flow.mode==='online'){netSetReady(true);return}
   if(flow.mode==='two')startMatch(flow.ch,flow.ch2,onEnd,true);
   else if(flow.mode==='tour'){
     const T=flow.tour,m=T.rounds[T.r].find(isHuman),op=m.a===flow.ch?m.b:m.a;
@@ -2445,21 +2480,31 @@ scr.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t||t.disabled)return;
   if(t.dataset.arrow!==undefined){
     const [k,side,d]=t.dataset.arrow.split('|'),g=flow.pg[k],n=TEAM_LIST.length;
+    if(net&&k==='op')return;
     g[side]=(g[side]+ +d+n)%n;pickScreen();return;
   }
   if(t.dataset.slot!==undefined){flow.slot=+t.dataset.slot;pickScreen();return}
-  if(t.dataset.op!==undefined){flow.ch2=+t.dataset.op;pickScreen();return}
+  if(t.dataset.op!==undefined){if(net)return;flow.ch2=+t.dataset.op;pickScreen();return}
   if(t.dataset.ch!==undefined){
     const i=+t.dataset.ch;
     flow.ch=i;
+    if(net)netPickChanged();
     pickScreen();return;
   }
   if(t.dataset.diff!==undefined){flow.diff=+t.dataset.diff;pickScreen();return}
   const act=t.dataset.act;
   if(act==='single')singleScreen();
-  else if(act==='back'){if(flow.mode==='two')homeScreen();else singleScreen()}
+  else if(act==='back'){if(flow.mode==='two')twoScreen();else if(flow.mode==='online')homeScreen();else singleScreen()}
   else if(act==='quick'){flow.mode='quick';flow.slot=0;if(flow.ch2===flow.ch)flow.ch2=CH.findIndex((_,k)=>k!==flow.ch);pickScreen()}
-  else if(act==='two'){flow.mode='two';flow.slot=0;if(flow.ch2===flow.ch)flow.ch2=CH.findIndex((_,k)=>k!==flow.ch);pickScreen()}
+  else if(act==='two')twoScreen();
+  else if(act==='localtwo'){flow.mode='two';flow.slot=0;if(flow.ch2===flow.ch)flow.ch2=CH.findIndex((_,k)=>k!==flow.ch);pickScreen()}
+  else if(act==='twoscreen')twoScreen();
+  else if(act==='online')onlineScreen();
+  else if(act==='createroom')netCreate();
+  else if(act==='joinpage')joinScreen();
+  else if(act==='joincode')netJoin((document.getElementById('roomcode')||{}).value);
+  else if(act==='leaveroom'){netLeave();homeScreen()}
+  else if(act==='netrematch')netRematch();
   else if(act==='tour'){flow.mode='tour';pickScreen()}
   else if(act==='pick')pickScreen();
   else if(act==='home')homeScreen();
@@ -2481,20 +2526,22 @@ const KEYS=[
 const down=new Set(),taps={},pad={l:0,r:0,jump:0};
 function playerFor(set){if(set===1)return 0;if(set===2)return st.two?1:0;return st.two?-1:0}
 function poll(){
-  const humans=st.two?[0,1]:[0];
+  const humans=net?[0]:(st.two?[0,1]:[0]);
   for(const i of humans){const n=st.p[i].inp;n.l=0;n.r=0;n.jump=0}
   for(const [code,set,act] of KEYS){
     if(act!=='l'&&act!=='r'&&act!=='jump')continue;
+    if(net&&set!==net.mySet)continue;
     if(!down.has(code))continue;
     const pl=playerFor(set);if(pl>=0)st.p[pl].inp[act]=1;
   }
-  if(!st.two){const n=st.p[0].inp;if(pad.l)n.l=1;if(pad.r)n.r=1;if(pad.jump)n.jump=1}
+  if(!st.two||net){const n=st.p[0].inp;if(pad.l)n.l=1;if(pad.r)n.r=1;if(pad.jump)n.jump=1}
 }
 function setKeysHint(){
   const el=document.getElementById('keys');if(!el)return;
   el.innerHTML=st&&st.two
     ?'<b>P1</b> <kbd>A</kbd><kbd>D</kbd> move &middot; <kbd>W</kbd> jump/shoot &middot; <kbd>S</kbd> fake &middot; <kbd>B</kbd> steal &middot; <kbd>V</kbd> takeover &nbsp;|&nbsp; <b>P2</b> <kbd>←</kbd><kbd>→</kbd> move &middot; <kbd>↑</kbd> jump/shoot &middot; <kbd>\u2193</kbd> fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover &nbsp;|&nbsp; double-tap a direction to dash &middot; <kbd>P</kbd> pause'
     :'<kbd>←</kbd><kbd>→</kbd> or <kbd>A</kbd><kbd>D</kbd> move &middot; hold <kbd>↑</kbd> or <kbd>W</kbd> to jump, release near the top to shoot &middot; double-tap a direction (or <kbd>Shift</kbd>) to dash &middot; <kbd>S</kbd> or <kbd>\u2193</kbd> pump fake &middot; <kbd>L</kbd> steal &middot; <kbd>K</kbd> takeover &middot; <kbd>P</kbd> pause';
+  if(net)el.innerHTML=el.innerHTML.replace(/\s*(&middot;)?\s*<kbd>P<\/kbd> pause/,'');
 }
 function showBinds(){
   const el=document.getElementById('binds');if(!el||!st)return;
@@ -2505,21 +2552,22 @@ function showBinds(){
 }
 function hideBinds(){const el=document.getElementById('binds');if(el)el.classList.remove('on')}
 /* pause tab: resume or quit the match */
-function togglePause(){if(st&&st.phase!=='over'){if(st.paused)resumeGame();else{st.paused=true;pauseScreen()}}}
+function togglePause(){if(net){netLeaveMatch();return}if(st&&st.phase!=='over'){if(st.paused)resumeGame();else{st.paused=true;pauseScreen()}}}
 function resumeGame(){if(!st)return;st.paused=false;hideScreen();document.getElementById('pause').hidden=false}
 function pauseScreen(){
   showScreen(`<div class="card menu"><p class="eyebrow">Paused</p><h2>Paused</h2><button class="btn primary" data-act="resume" type="button">Resume</button><button class="btn" data-act="quit" type="button">Quit match</button></div>`);
 }
 window.addEventListener('keydown',e=>{
-  if(e.code==='KeyP'&&!e.repeat){togglePause();return}
+  if(e.code==='KeyP'&&!e.repeat){if(!net)togglePause();return}
   const rows=KEYS.filter(k=>k[0]===e.code);
   if(!rows.length||!st)return;
   e.preventDefault();
   down.add(e.code);
   if(e.repeat)return;
   for(const [code,set,act] of rows){
+    if(net&&set!==net.mySet)continue;
     const pl=playerFor(set);if(pl<0)continue;
-    const inp=st.p[pl].inp;
+    const inp=net&&net.role==='guest'?net.oneshot:st.p[pl].inp;
     if(act==='steal'||act==='sup'||act==='dash'||act==='fake')inp[act]=1;
     else if(act==='l'||act==='r'){
       const now=performance.now();
@@ -2577,9 +2625,403 @@ document.getElementById('mute').addEventListener('click',e=>{muted=!muted;e.curr
 let last=0;
 function frame(ts){
   const dt=Math.min(.033,(ts-last)/1000||0);last=ts;
-  update(dt);hoopPhysics(dt);if(!st||!st.paused)updateParts(dt);crowdAudio();draw();
+  if(net&&net.role==='guest'){if(st){net.held=netHeld();crowdUpdate(dt);netPredict(dt);netInterp()}}else update(dt);
+  hoopPhysics(dt);if(!st||!st.paused)updateParts(dt);crowdAudio();draw();
   requestAnimationFrame(frame);
 }
+/* ---------- online two-player ----------
+   The host runs the match. The guest sends its inputs; the host sends state snapshots back and the guest shows them.
+   Room codes and message relay come from the room server (multiplayer/server.js). */
+const ROOM_SERVER=window.HOOP_ROOM_SERVER||'https://hoop-stars-rooms.hoop-stars.workers.dev';
+const NET_TICK=33;
+// Browser client for the Hoop Stars room server.
+// const room = new HoopRoom('http://localhost:8787');
+// const code = await room.create();        // show this code to your friend
+// await room.join('ABCD');                  // or the friend joins with the code
+// room.onMessage = data => { ... };         // opponent's game input or state
+// room.onEvent = ev => { ... };             // 'joined' | 'left'
+// room.send({ ... });
+class HoopRoom {
+  constructor(baseUrl) {
+    this.base = baseUrl.replace(/\/$/, '');
+    this.wsBase = this.base.replace(/^http/, 'ws');
+    this.code = null; this.token = null; this.slot = null;
+    this.ws = null;
+    this.onMessage = () => {}; this.onEvent = () => {};
+  }
+  async _post(path, body) {
+    const r = await fetch(this.base + path, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body || {}),
+    });
+    const json = await r.json();
+    if (!r.ok) throw new Error(json.error || ('HTTP ' + r.status));
+    return json;
+  }
+  async create() {
+    const r = await this._post('/rooms');
+    this._joined(r);
+    return r.code;
+  }
+  async join(code) {
+    const c = code.toUpperCase();
+    const r = await this._post(`/rooms/${encodeURIComponent(c)}/join`);
+    r.code = c;   /* the server's join reply does not repeat the code */
+    this._joined(r);
+    return r.code;
+  }
+  _joined(r) {
+    this.code = r.code; this.token = r.token; this.slot = r.slot;
+    this._connect();
+  }
+  _connect() {
+    const ws = new WebSocket(`${this.wsBase}/rooms/${this.code}/ws?token=${this.token}`);
+    this.ws = ws;
+    ws.onopen = () => { if (this.ws === ws) this.onEvent({ type: 'open' }); };
+    ws.onmessage = e => {
+      if (this.ws !== ws) return;
+      let msg; try { msg = JSON.parse(e.data); } catch { return; }
+      if (msg.type === 'msg') this.onMessage(msg.data);
+      else if (msg.type === 'joined') this.onEvent({ type: 'joined' });
+      else if (msg.type === 'left') {
+        this.token = null;
+        this.onEvent({ type: 'left' });
+      }
+    };
+    ws.onclose = () => {
+      if (this.ws !== ws) return;
+      this.ws = null;
+      if (this.token) { this.token = null; this.onEvent({ type: 'error' }); }
+    };
+    ws.onerror = () => {};
+  }
+  send(data) {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return Promise.reject(new Error('not connected'));
+    ws.send(JSON.stringify({ type: 'msg', data }));
+    return Promise.resolve();
+  }
+  async leave() {
+    const ws = this.ws;
+    this.ws = null; this.token = null; this.code = null; this.slot = null;
+    if (ws) { try { ws.close(); } catch {} }
+  }
+}
+
+
+/* ---------- online: the host records particle and sound calls, and the guest replays them ---------- */
+let fxDepth=0,fxOut=[];
+function fxEnc(v){
+  if(typeof v==='function')return undefined;
+  if(Array.isArray(v))return v.map(fxEnc);
+  if(v&&typeof v==='object'){
+    if(v===st.p[0])return {P:0};
+    if(v===st.p[1])return {P:1};
+    if(v===st.ball)return {B:1};
+    const hi=hoops.indexOf(v);if(hi>=0)return {H:hi};
+    const o={};for(const k of Object.keys(v)){const e=fxEnc(v[k]);if(e!==undefined)o[k]=e}
+    return o;
+  }
+  return v;
+}
+function fxDec(v){
+  if(Array.isArray(v))return v.map(fxDec);
+  if(v&&typeof v==='object'){
+    const ks=Object.keys(v);
+    if(ks.length===1&&ks[0]==='P')return st.p[v.P];
+    if(ks.length===1&&ks[0]==='B')return st.ball;
+    if(ks.length===1&&ks[0]==='H')return hoops[v.H];
+    const o={};for(const k of ks)o[k]=fxDec(v[k]);
+    return o;
+  }
+  return v;
+}
+/* only the outermost call is recorded, so a sound that calls other sounds is sent once */
+function fxWrap(name,orig){
+  return function(...a){
+    if(fxDepth===0&&net&&net.role==='host'&&net.started)fxOut.push({n:name,a:a.map(fxEnc)});
+    fxDepth++;
+    try{return orig.apply(this,a)}finally{fxDepth--}
+  };
+}
+emit=fxWrap('emit',emit);
+sfx=fxWrap('sfx',sfx);sfxWhistle=fxWrap('sfxWhistle',sfxWhistle);sfxGreen=fxWrap('sfxGreen',sfxGreen);
+sfxImpact=fxWrap('sfxImpact',sfxImpact);sfxSwish=fxWrap('sfxSwish',sfxSwish);sfxBlock=fxWrap('sfxBlock',sfxBlock);
+sfxSnatch=fxWrap('sfxSnatch',sfxSnatch);sfxSlam=fxWrap('sfxSlam',sfxSlam);cheer=fxWrap('cheer',cheer);
+spawnFlash=fxWrap('spawnFlash',spawnFlash);netImpulse=fxWrap('netImpulse',netImpulse);
+const FX_CALL={emit,sfx,sfxWhistle,sfxGreen,sfxImpact,sfxSwish,sfxBlock,sfxSnatch,sfxSlam,cheer,spawnFlash,netImpulse};
+function netFxApply(list){
+  for(const r of list){const f=FX_CALL[r.n];if(f)f(...r.a.map(fxDec))}
+}
+
+let net=null;
+function netScreen(title,sub,code,btns){
+  showScreen(`<div class="card menu"><p class="eyebrow">Online</p><h2>${title}</h2>${code?`<div class="roomcode">${code}</div>`:''}<p class="netmsg">${sub}</p>${btns||'<button class="btn" data-act="leaveroom" type="button">Cancel</button>'}</div>`);
+}
+function twoHTML(full){
+  return `<div class="card menu"><p class="eyebrow">Two players</p><h2>Choose a mode</h2>
+  ${full?'<p class="netmsg">Online play is full for today. Come back tomorrow.</p>':''}
+  <button class="btn primary" data-act="localtwo" type="button">Local<small>Share one keyboard</small></button>
+  <button class="btn primary" data-act="online" type="button" ${full?'disabled':''}>Online<small>Play a friend with a room code</small></button>
+  <button class="btn" data-act="home" type="button">Back</button></div>`;
+}
+function onlineHTML(full){
+  return `<div class="card menu"><p class="eyebrow">Online</p><h2>Room</h2>
+  ${full?'<p class="netmsg">Online play is full for today. Come back tomorrow.</p>':''}
+  <button class="btn primary" data-act="createroom" type="button" ${full?'disabled':''}>Create room<small>Get a code for your friend</small></button>
+  <button class="btn primary" data-act="joinpage" type="button" ${full?'disabled':''}>Join with code<small>Enter your friend's code</small></button>
+  <button class="btn" data-act="twoscreen" type="button">Back</button></div>`;
+}
+/* asks the room server whether online play is still open today; if the check fails, online stays available */
+async function onlineOpen(){
+  try{const r=await fetch(ROOM_SERVER+'/status');const j=await r.json();return j.open!==false}catch(e){return true}
+}
+/* remembers whether online play is full today, so the buttons are drawn right away */
+let onlineFull=false;
+function refreshOnline(){return onlineOpen().then(ok=>{onlineFull=!ok;return ok})}
+function twoScreen(){
+  showScreen(twoHTML(onlineFull));
+  refreshOnline().then(ok=>{const cur=scr.querySelector('[data-act=online]');if(cur&&(!ok)!==cur.disabled)showScreen(twoHTML(!ok))});
+}
+function onlineScreen(){
+  showScreen(onlineHTML(onlineFull));
+  refreshOnline().then(ok=>{const cur=scr.querySelector('[data-act=createroom]');if(cur&&(!ok)!==cur.disabled)showScreen(onlineHTML(!ok))});
+}
+function joinScreen(err){
+  showScreen(`<div class="card menu"><p class="eyebrow">Online</p><h2>Join room</h2>
+  <input id="roomcode" class="roomin" maxlength="4" autocomplete="off" autocapitalize="characters" placeholder="CODE" aria-label="Room code">
+  <button class="btn primary" data-act="joincode" type="button">Join</button>
+  <p class="netmsg">${err||''}</p>
+  <button class="btn" data-act="online" type="button">Back</button></div>`);
+  const el=document.getElementById('roomcode');if(el)el.focus();
+}
+function netClose(){
+  if(!net)return;
+  net.timers.forEach(clearInterval);
+  if(net.room)net.room.leave();
+  net=null;
+  const pb=document.getElementById('pause');if(pb)pb.textContent='Pause';
+}
+function netLeaveMatch(){netClose();homeScreen()}
+function netNew(role){
+  return {role,room:new HoopRoom(ROOM_SERVER),mySet:role==='host'?1:2,started:false,inFlight:0,seq:0,inSeq:0,snapSeq:0,errX:0,errY:0,
+    oneshot:{},over:false,myReady:false,oppReady:false,timers:[],buf:[],hist:[],lastH:'',lastSend:0,jp:false};
+}
+async function netCreate(){
+  netClose();
+  const me=net=netNew('host');
+  me.room.onEvent=netEvent;me.room.onMessage=netMsg;
+  netScreen('Room','Connecting…');
+  try{
+    const code=await me.room.create();
+    if(net!==me)return;
+    netScreen('Room code','Share this code with your friend. Waiting for them to join…',code);
+  }catch(e){if(net===me)netFail('Could not create a room: '+e.message)}
+}
+async function netJoin(code){
+  code=(code||'').trim().toUpperCase();
+  if(code.length!==4){joinScreen('Enter the 4-letter code');return}
+  netClose();
+  const me=net=netNew('guest');
+  me.room.onEvent=netEvent;me.room.onMessage=netMsg;
+  netScreen('Joining…','');
+  try{
+    await me.room.join(code);
+    if(net!==me)return;
+    flow.mode='online';flow.slot=0;netSendPick();pickScreen();
+  }catch(e){if(net===me)net=null;joinScreen(e.message)}
+}
+function netFail(msg){
+  netClose();
+  netScreen('Online',msg,'','<button class="btn" data-act="twoscreen" type="button">Back</button>');
+}
+function netEnded(msg){
+  netClose();st=null;hideBinds();
+  showScreen(`<div class="card menu"><p class="eyebrow">Online</p><h2>Match over</h2><p class="netmsg">${msg}</p><button class="btn primary" data-act="home" type="button">Main menu</button></div>`);
+}
+function netEvent(ev){
+  const me=net;if(!me)return;
+  if(ev.type==='open')netSendPick();
+  else if(ev.type==='joined'&&me.role==='host'){flow.mode='online';flow.slot=0;netSendPick();pickScreen()}
+  else if(ev.type==='left')netEnded('Your friend left the room.');
+  else if(ev.type==='error')netEnded('Lost connection to the room.');
+}
+function netBegin(a,b){
+  const me=net;if(!me)return;
+  startMatch(a,b,netOnEnd,true);
+  const pb=document.getElementById('pause');pb.textContent='Quit match';pb.hidden=false;
+  me.started=true;me.over=false;me.buf=[];fxOut=[];
+  if(!me.timers.length)me.timers.push(setInterval(netTick,me.role==='host'?33:25));
+}
+function teamIndexOf(ci){return TEAM_LIST.findIndex(t=>t.id===CH[ci].team)}
+function netSendPick(){if(net)net.room.send({t:'pick',ch:flow.ch}).catch(()=>{})}
+function netPickChanged(){
+  const me=net;if(!me)return;
+  if(me.myReady){me.myReady=false;me.room.send({t:'ready',v:false}).catch(()=>{})}
+  netSendPick();
+}
+function netSetReady(v){
+  const me=net;if(!me)return;
+  me.myReady=v;me.room.send({t:'ready',v}).catch(()=>{});
+  netMaybeStart();
+  if(!st)pickScreen();
+}
+/* the host starts the match once both players are ready */
+function netMaybeStart(){
+  const me=net;
+  if(!me||me.role!=='host'||me.started||!me.myReady||!me.oppReady)return;
+  me.room.send({t:'start',ch:flow.ch,ch2:flow.ch2}).catch(()=>{});
+  netBegin(flow.ch,flow.ch2);
+}
+function netRematch(){
+  const me=net;if(!me||me.role!=='host')return;
+  me.room.send({t:'start',ch:flow.ch,ch2:flow.ch2}).catch(()=>{});
+  netBegin(flow.ch,flow.ch2);
+}
+/* host: the full match state. guest: held keys (numbered so late ones are ignored) plus one-shot actions, which are never dropped */
+function netSerialize(){
+  const P=st.p;
+  return JSON.stringify(st,function(k,v){
+    if(k==='cb'||k==='ai'||k==='inp')return undefined;
+    if(this===P)return v;
+    if(v===P[0])return '@0';
+    if(v===P[1])return '@1';
+    return v;
+  });
+}
+function netHeld(){
+  const h={l:0,r:0,jump:0};
+  for(const [code,set,act] of KEYS){
+    if(set!==net.mySet)continue;
+    if((act==='l'||act==='r'||act==='jump')&&down.has(code))h[act]=1;
+  }
+  if(pad.l)h.l=1;if(pad.r)h.r=1;if(pad.jump)h.jump=1;
+  return h;
+}
+function netTick(){
+  const me=net;if(!me||!me.started||!st||me.inFlight>=4)return;
+  let body;
+  if(me.role==='host'){me.seq++;const fx=fxOut;fxOut=[];body={t:'s',q:me.seq,s:netSerialize(),fx,ack:me.inSeq}}
+  else{
+    /* inputs go out only when they change, plus a heartbeat, to keep request volume down */
+    const a=Object.keys(me.oneshot),h=netHeld(),hs=JSON.stringify(h),now=performance.now();
+    if(!a.length&&hs===me.lastH&&now-me.lastSend<100)return;
+    me.lastH=hs;me.lastSend=now;me.oneshot={};me.seq++;body={t:'i',q:me.seq,h,a};
+  }
+  me.inFlight++;
+  me.room.send(body).catch(()=>{}).finally(()=>{me.inFlight--});
+}
+function netMsg(d){
+  const me=net;if(!me||!d)return;
+  if(d.t==='pick'){flow.ch2=d.ch;if(me.role==='guest'&&d.ch===flow.ch){flow.ch=CH.findIndex((_,k)=>k!==d.ch);netSendPick()}flow.pg.op.l=teamIndexOf(d.ch);if(!st)pickScreen();return}
+  if(d.t==='ready'){me.oppReady=!!d.v;if(!st)pickScreen();netMaybeStart();return}
+  if(me.role==='guest'){
+    if(d.t==='start')netBegin(d.ch,d.ch2);
+    else if(d.t==='s'&&st&&me.started){
+      if(d.fx&&d.fx.length)netFxApply(d.fx);
+      const dn=performance.now();if(NETDBG.last)NETDBG.gap=Math.max(NETDBG.gap,dn-NETDBG.last);NETDBG.last=dn;NETDBG.n++;NETDBG.bytes+=d.s.length;
+      if(d.q>me.snapSeq){me.snapSeq=d.q;netApply(JSON.parse(d.s),d.ack)}
+    }
+  }else if(me.role==='host'){
+    if(d.t==='i'&&st&&me.started){
+      const n=st.p[1].inp;
+      if(d.q>me.inSeq){me.inSeq=d.q;n.l=d.h.l?1:0;n.r=d.h.r?1:0;n.jump=d.h.jump?1:0}
+      for(const a of d.a||[])if(a==='steal'||a==='sup'||a==='dash'||a==='fake')n[a]=1;
+    }
+  }
+}
+/* debug readout for the joiner: add ?debugnet to the page address to see it. Players never see it. */
+const NETDBG={n:0,bytes:0,gap:0,last:0};
+if(/[?&]debugnet/.test(location.search)){
+  const el=document.createElement('div');
+  el.style.cssText='position:fixed;left:6px;bottom:6px;z-index:99;background:#000c;color:#0f0;font:12px monospace;padding:4px 6px;white-space:pre';
+  document.body.appendChild(el);
+  let lastN=0;
+  setInterval(()=>{
+    const n=NETDBG.n-lastN;lastN=NETDBG.n;
+    el.textContent=`snaps/s ${n}\navg KB ${n?(NETDBG.bytes/NETDBG.n/1024).toFixed(1):'-'}\nmax gap ms ${NETDBG.gap.toFixed(0)}`;
+    NETDBG.gap=0;
+  },1000);
+}
+/* guest: take the host's state. The guest's own player keeps its locally predicted movement and only drifts toward the host's */
+function netApply(s,ack){
+  const me=net,P=st.p,own=1;
+  const fix=v=>{
+    if(v==='@0')return P[0];
+    if(v==='@1')return P[1];
+    if(Array.isArray(v))return v.map(fix);
+    if(v&&typeof v==='object'){const o={};for(const k of Object.keys(v))o[k]=fix(v[k]);return o}
+    return v;
+  };
+  const skip={x:1,y:1,vx:1,vy:1,jp:1};
+  for(const k of Object.keys(s)){
+    if(k==='p'){
+      for(let i=0;i<2;i++){
+        const sp=s.p[i];if(!sp)continue;
+        for(const f of Object.keys(sp)){if(i===own&&skip[f])continue;P[i][f]=fix(sp[f])}
+      }
+    }else st[k]=fix(s[k]);
+  }
+  /* correct our own player: compare the host's position with our prediction for the same input, then shift the prediction */
+  const hp=s.p[own],mine=P[own];
+  if(hp&&ack!==undefined){
+    let k=-1;for(let i=me.hist.length-1;i>=0;i--)if(me.hist[i].q===ack){k=i;break}
+    if(k>=0){
+      const h=me.hist[k],dx=hp.x-h.x,dy=hp.y-h.y;
+      if(Math.abs(dx)<3&&Math.abs(dy)<3){}else{
+      me.errX+=dx;me.errY+=dy;
+      for(let i=k;i<me.hist.length;i++){me.hist[i].x+=dx;me.hist[i].y+=dy}
+      me.hist.splice(0,k);
+    }}
+  }
+  me.buf.push({t:performance.now(),x0:s.p[0].x,y0:s.p[0].y,bx:s.ball.x,by:s.ball.y});
+  if(me.buf.length>8)me.buf.shift();
+  if(st.phase==='over'&&!me.over){me.over=true;netOnEnd(netResult())}
+  else if(st.phase!=='over')me.over=false;
+}
+/* guest: move own player right away from local input, using the same movement rules the host uses */
+function netPredict(dt){
+  const p=st.p[1],me=net;
+  if(!me||me.role!=='guest')return;
+  /* ease in the pending correction: big errors snap, small ones glide over a few frames */
+  if(Math.abs(me.errX)>60||Math.abs(me.errY)>60){p.x+=me.errX;p.y+=me.errY;me.errX=0;me.errY=0}
+  else{const cx=me.errX*0.2,cy=me.errY*0.2;p.x+=cx;p.y+=cy;me.errX-=cx;me.errY-=cy}
+  if(st.phase!=='play'||p.dunking||p.hang>0)return;
+  const inp=me.held||{l:0,r:0,jump:0};
+  const can=p.stun<=0&&!(st.ftWait>0)&&!(st.ft&&p!==st.ft.p);
+  const air=p.y<FLOOR;
+  const pressedJ=!!inp.jump&&!me.jp;me.jp=!!inp.jump;
+  let dir=can?((inp.r||0)-(inp.l||0)):0;
+  if(p.dash>0)dir=p.dashDir;
+  const sp=p.ch.spd*T(p,'spd',1)*(p.dash>0?2.3:1);
+  p.vx+=(dir*sp-p.vx)*Math.min(1,dt*(air?4:9));
+  if(can&&pressedJ&&!air)p.vy=-p.ch.jump;
+  p.x=clamp(p.x+p.vx*dt,68,732);
+  p.vy+=PG*dt;p.y+=p.vy*dt;
+  if(p.y>=FLOOR){p.y=FLOOR;p.vy=0}
+  me.hist.push({q:me.seq,x:p.x,y:p.y});
+  if(me.hist.length>120)me.hist.shift();
+}
+/* guest: show the opponent and ball a little behind real time, interpolated between snapshots */
+function netInterp(){
+  const me=net,b=me&&me.buf;if(!b||b.length<2)return;
+  const rt=performance.now()-100;
+  let i=b.length-2;while(i>0&&b[i].t>rt)i--;
+  const a=b[i],c=b[i+1];
+  const k=clamp((rt-a.t)/Math.max(1,c.t-a.t),0,1);
+  const L=(u,v)=>u+(v-u)*k;
+  st.p[0].x=L(a.x0,c.x0);st.p[0].y=L(a.y0,c.y0);
+  st.ball.x=L(a.bx,c.bx);st.ball.y=L(a.by,c.by);
+}
+function netResult(){
+  const mine=net.role==='host'?0:1,a=st.p[mine],c=st.p[1-mine];
+  return {win:a.score>c.score,you:a.score,cpu:c.score,stats:[a.stat,c.stat],names:[]};
+}
+function netOnEnd(res){
+  const score=`${res.you} – ${res.cpu}`;
+  const again=net&&net.role==='host'?'<button class="btn primary" data-act="netrematch" type="button">Rematch</button>':'';
+  setTimeout(()=>{if(!net)return;endScreen('Online',res.win?'You win':'You lose',score,again+'<button class="btn" data-act="leaveroom" type="button">Leave room</button>',res)},1100);
+}
+refreshOnline();
 homeScreen();
 /* startup splash: company name on black, fades into the home screen with a flash */
 (()=>{
@@ -2591,6 +3033,7 @@ homeScreen();
     timers.push(setTimeout(()=>intro.classList.add('on'),30));
     timers.push(setTimeout(()=>intro.classList.add('out'),2750));
     timers.push(setTimeout(()=>fl.classList.add('go'),2300));
+    timers.push(setTimeout(sfxFlash,2300));
     timers.push(setTimeout(finish,3600));
   }catch(e){finish()}
 })();
