@@ -133,7 +133,7 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .pick:disabled{opacity:.35;filter:grayscale(1);cursor:not-allowed;transform:none}
 .side{min-width:0}
 .sidelbl{margin:0 0 6px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
-.stage #pause{position:absolute;top:14.7%;left:50%;transform:translateX(-50%);z-index:4;padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(8,16,26,.72);color:#fff;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
+.stage #pause{position:absolute;top:12.6%;left:50%;transform:translateX(-50%);z-index:4;padding:6px 16px;border-radius:999px;border:1px solid rgba(255,255,255,.28);background:rgba(8,16,26,.72);color:#fff;font:700 12px var(--body);letter-spacing:.08em;text-transform:uppercase;cursor:pointer}
 .stage #pause:hover{border-color:var(--warm);color:var(--warm)}
 .stage #pause[hidden]{display:none}
 .binds{position:absolute;left:50%;bottom:3%;transform:translateX(-50%);width:min(94%,660px);padding:9px 14px;border-radius:12px;background:rgba(8,16,26,.8);border:1px solid rgba(255,255,255,.14);color:var(--ink);font-size:12px;opacity:0;transition:opacity .9s ease;pointer-events:none;z-index:3}
@@ -2481,7 +2481,7 @@ function finishTour(T){
   for(let g=0;T.champ===null&&g<6;g++){T.rounds[T.r].forEach(m=>{if(!m.done)playSeries(m)});tourAdvance(T)}
 }
 /* last name only, skipping suffixes like Jr. */
-const SHORTNAME={'Michael Porter Jr.':'MPJ','Shai Gilgeous-Alexander':'SGA','Shaquille O\u2019Neal':'Shaq','Kobe Bryant':'Kobe'};
+const SHORTNAME={'Michael Porter Jr.':'MPJ','Shai Gilgeous-Alexander':'SGA','Shaquille O\u2019Neal':'Shaq','Kobe Bryant':'Kobe','Victor Wembanyama':'Wemby','Giannis Antetokounmpo':'Giannis'};
 const lastName=n=>{if(SHORTNAME[n])return SHORTNAME[n];const w=n.split(' ').filter(x=>!/^(Jr\.|Sr\.|II|III|IV)$/.test(x));return w[w.length-1]};
 function matchHTML(m){
   const row=(i,w)=>{const c=CH[i],won=m.done&&m.winner===i;
@@ -2522,7 +2522,7 @@ function fitBracket(){
   const b=scr.querySelector('.bracket');
   if(!b)return;
   const bodies=[...b.querySelectorAll('.rbody')];
-  let z=1;
+  let z=.88;   /* a little smaller than full size, still big */
   for(let k=0;k<8;k++){
     b.style.zoom=z;
     const over=Math.max(0,...bodies.map(r=>r.scrollHeight-r.clientHeight));
@@ -2953,7 +2953,7 @@ function netEvent(ev){
 function netBegin(a,b){
   const me=net;if(!me)return;
   startMatch(a,b,netOnEnd,true);
-  const pb=document.getElementById('pause');pb.textContent='Quit match';pb.hidden=false;
+  const pb=document.getElementById('pause');pb.textContent='Quit';pb.hidden=false;
   me.started=true;me.over=false;me.buf=[];fxOut=[];
   if(!me.timers.length)me.timers.push(setInterval(netTick,me.role==='host'?33:25));
 }
