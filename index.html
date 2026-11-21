@@ -147,6 +147,8 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .bracket .rcol h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;letter-spacing:.06em;padding:0 2px 7px}
 .bracket .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .bracket .av{width:20px;height:20px}
+.bracket .fdots{display:flex;gap:6px;justify-content:center;padding:4px 0 2px}
+.bracket .fdots i{width:9px;height:9px;border-radius:50%;background:#2a3a4c;border:1px solid #3d5065}
 .bracket .nm{font-size:11px}
 .rbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px}
 .rcol h4{margin:0 0 10px;padding-bottom:7px;border-bottom:2px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
@@ -941,7 +943,7 @@ function stepPlayer(p,o,inp,dt,act){
   p.vx+=(dir*sp-p.vx)*Math.min(1,dt*(airBefore?4:9));
   if(p.has&&p.dash>0&&p.dashDir===-p.ad)p.face=p.ad;else if(dir)p.face=dir;else if(p.has)p.face=p.ad;
   if(can&&pressedJ&&!airBefore){
-    if(!ftLock)p.vy=-p.ch.jump;p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
+    if(!ftLock){p.vy=-p.ch.jump;p.jumpX=p.x}p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
     if(p.has)p.meter={t:0,m:0,cp:contestOf(p,o)};
     else if(o.fakeT>0&&Math.abs(o.x-p.x)<140&&p.dash<=0)p.bit=true;
   }
@@ -1082,7 +1084,10 @@ function launch(p,c){
   p.stat.fga++;
   const h=hoops[p.atk],b=st.ball,dist=Math.abs(p.x-h.x),o=st.p[1-p.idx];
   const t=tiers(p,o,c.layup);
-  const pts=st.ft&&st.ft.p===p?1:dist>300?3:2;
+  /* the shot counts from where the player jumped, not where they released it */
+  const from=p.y<FLOOR-2&&p.jumpX!==undefined?p.jumpX:p.x;
+  /* a three needs both feet clearly behind the line: the foot nearest the hoop (about 24px in from the centre) must be past it, so a foot touching the line is a two */
+  const pts=st.ft&&st.ft.p===p?1:Math.abs(from-h.x)-24>300?3:2;
   /* The meter only sets the release: how far from the apex it was and how contested the shot is set the error.
      The path after that is simulated (gravity, rim, backboard), so a shot can go in, rim out, bank or miss. */
   let tier;
@@ -2483,11 +2488,13 @@ function finishTour(T){
 /* last name only, skipping suffixes like Jr. */
 const SHORTNAME={'Michael Porter Jr.':'MPJ','Shai Gilgeous-Alexander':'SGA','Shaquille O\u2019Neal':'Shaq','Kobe Bryant':'Kobe','Victor Wembanyama':'Wemby','Giannis Antetokounmpo':'Giannis'};
 const lastName=n=>{if(SHORTNAME[n])return SHORTNAME[n];const w=n.split(' ').filter(x=>!/^(Jr\.|Sr\.|II|III|IV)$/.test(x));return w[w.length-1]};
-function matchHTML(m){
-  const row=(i,w)=>{const c=CH[i],won=m.done&&m.winner===i;
-    return `<div class="mrow${i===flow.ch?' me':''}${won?' won':''}${m.done&&!won?' out':''}" style="--c:${c.col}"><img class="av" src="${portrait(c)}" alt=""><span class="nm">${lastName(c.name)}</span><b class="sc">${w}</b></div>`};
-  const pips=m.games.map(g=>`<i class="${g[0]>g[1]?'top':'bot'}"></i>`).join('');
-  return `<div class="match${isHuman(m)?' mine':''}${m.done?'':''}">${row(m.a,m.wa)}${row(m.b,m.wb)}${m.games.length?`<div class="pips">${pips}</div>`:''}</div>`;
+function matchHTML(m,isFinal){
+  /* each player's points in the latest game; the Finals is best of 3, so it gets three dots that light up with the winner's colour */
+  const last=m.games[m.games.length-1];
+  const row=(i,pts)=>{const c=CH[i],won=m.done&&m.winner===i;
+    return `<div class="mrow${i===flow.ch?' me':''}${won?' won':''}${m.done&&!won?' out':''}" style="--c:${c.col}"><img class="av" src="${portrait(c)}" alt=""><span class="nm">${lastName(c.name)}</span><b class="sc">${pts===undefined?'':pts}</b></div>`};
+  const dots=isFinal?`<div class="fdots">${[0,1,2].map(k=>{const g=m.games[k];return `<i${g?` style="background:${CH[g[0]>g[1]?m.a:m.b].col}"`:''}></i>`}).join('')}</div>`:'';
+  return `<div class="match${isHuman(m)?' mine':''}">${row(m.a,last?last[0]:undefined)}${row(m.b,last?last[1]:undefined)}${dots}</div>`;
 }
 function bracketScreen(){
   const T=flow.tour;
@@ -2498,12 +2505,12 @@ function bracketScreen(){
     const rd=T.rounds[ri],per=4/Math.pow(2,ri);
     if(!rd)return Array.from({length:per},()=>tbd()).join('');
     const part=which==='E'?rd.slice(0,per):rd.slice(per,per*2);
-    return part.map(matchHTML).join('');
+    return part.map(m=>matchHTML(m)).join('');
   };
   const col=(name,body)=>`<div class="rcol"><h4>${name}</h4><div class="rbody">${body}</div></div>`;
   const eastCols=[0,1,2].map(ri=>col('East · '+short[ri],side(ri,'E'))).join('');
   const westCols=[2,1,0].map(ri=>col('West · '+short[ri],side(ri,'W'))).join('');
-  const finalBody=T.rounds[3]?T.rounds[3].map(matchHTML).join(''):tbd();
+  const finalBody=T.rounds[3]?T.rounds[3].map(m=>matchHTML(m,true)).join(''):tbd();
   const cols=eastCols+col('Finals',finalBody)+westCols;
   const menu='<button class="btn" data-act="home" type="button">Main menu</button>';
   let title,action;
