@@ -122,7 +122,7 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 @media (max-width:640px){.tcols{grid-template-columns:1fr}}
 .thead{display:flex;align-items:center;gap:8px;padding-bottom:8px;margin-bottom:8px;border-bottom:1px solid var(--line)}
 .thead h3{flex:1;margin:0;text-align:center;color:var(--ink)}
-.thead h3::before{content:"";display:inline-block;width:9px;height:9px;border-radius:2px;background:var(--c);margin-right:8px}
+.thead h3::before{content:none;display:none}
 .arr{width:30px;height:30px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--ink);font-size:20px;line-height:1;padding:0;cursor:pointer}
 .arr:hover{border-color:var(--warm);color:var(--warm)}
 .tlist{display:grid;gap:8px}
@@ -140,8 +140,12 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .binds.on{opacity:1}
 .binds .bgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
 .binds kbd{margin:0 2px}
-.bracket{display:flex;gap:14px;overflow-x:auto;padding:4px 2px 8px}
-.rcol{flex:0 0 178px;display:flex;flex-direction:column}
+.bracket{display:flex;gap:6px;overflow:hidden;padding:4px 2px 8px;width:100%;box-sizing:border-box}
+.rcol{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
+.bracket .rcol h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;letter-spacing:.06em;padding:0 2px 7px}
+.bracket .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bracket .av{width:20px;height:20px}
+.bracket .nm{font-size:11px}
 .rbody{flex:1;display:flex;flex-direction:column;justify-content:space-around;gap:10px}
 .rcol h4{margin:0 0 10px;padding-bottom:7px;border-bottom:2px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);text-align:center}
 .match{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 8px 18px -14px #000}
@@ -194,8 +198,8 @@ const W=800,H=450,FLOOR=372,G=1200,PG=1350,RIMY=166,RIMH=23,R=11,MATCH=90,OT=30;
 const hoops=[{x:84,bx:54,s:-1,nOff:0,nV:0,rOff:0,rV:0},{x:716,bx:746,s:1,nOff:0,nV:0,rOff:0,rV:0}];
 /* Kits use team colors and the number only; no logos or team names. */
 const KITS={
-  jordan:{home:{jersey:'#c8102e',trim:'#15161b',num:'#ffffff',short:'#15161b',stripe:'#c8102e'},
-          alt:{jersey:'#f4f4f4',trim:'#c8102e',num:'#c8102e',short:'#f4f4f4',stripe:'#c8102e'}},
+  jordan:{home:{jersey:'#f4f4f4',trim:'#c8102e',num:'#c8102e',short:'#f4f4f4',stripe:'#c8102e'},
+          alt:{jersey:'#15161b',trim:'#c8102e',num:'#ffffff',short:'#15161b',stripe:'#c8102e'}},
   lebron:{home:{jersey:'#fdb927',trim:'#552583',num:'#552583',short:'#fdb927',stripe:'#552583'},
           alt:{jersey:'#552583',trim:'#fdb927',num:'#fdb927',short:'#552583',stripe:'#fdb927'}},
   curry:{home:{jersey:'#1d428a',trim:'#ffc72c',num:'#ffc72c',short:'#1d428a',stripe:'#ffc72c'},
@@ -207,37 +211,50 @@ Object.assign(KITS,{
   luka:teamKit('#552583','#fdb927'),reaves:teamKit('#552583','#fdb927'),
   shai:teamKit('#007ac1','#ef3b24'),chet:teamKit('#007ac1','#ef3b24'),
   bam:teamKit('#98002e','#f9a01b'),giannis:teamKit('#98002e','#f9a01b'),
-  mitchell:teamKit('#860038','#fdbb30'),mobley:teamKit('#860038','#fdbb30'),
+  mitchell:teamKit('#041e42','#e31837'),mobley:teamKit('#041e42','#e31837'),
   kyrie:teamKit('#00538c','#b8c4ca'),flagg:teamKit('#00538c','#b8c4ca')
 });
-Object.assign(KITS,{maxey:teamKit('#006bb6','#ed174c'),brown:teamKit('#006bb6','#ed174c'),duren:teamKit('#c8102e','#1d42ba'),cade:teamKit('#c8102e','#1d42ba'),ad:teamKit('#002b5c','#e31837'),trae:teamKit('#002b5c','#e31837')});
-Object.assign(KITS,{avdija:teamKit('#e03a3e','#000000'),lillard:teamKit('#e03a3e','#000000'),edwards:teamKit('#0c2340','#78be20'),lamelo:teamKit('#0c2340','#78be20'),jokic:teamKit('#0e2240','#fec524'),murray:teamKit('#0e2240','#fec524'),wemby:teamKit('#c4ced4','#000000'),castle:teamKit('#c4ced4','#000000')});
+/* 76ers: blue home kit with white trim, white away kit */
+const SIXERS={home:{jersey:'#006bb6',trim:'#ffffff',num:'#ffffff',short:'#006bb6',stripe:'#ffffff'},alt:{jersey:'#ffffff',trim:'#006bb6',num:'#006bb6',short:'#ffffff',stripe:'#006bb6'}};
+Object.assign(KITS,{maxey:SIXERS,brown:SIXERS,duren:teamKit('#c8102e','#1d42ba'),cade:teamKit('#c8102e','#1d42ba'),ad:teamKit('#002b5c','#e31837'),trae:teamKit('#002b5c','#e31837')});
+Object.assign(KITS,{avdija:teamKit('#111111','#1fb5b0'),lillard:teamKit('#111111','#1fb5b0'),edwards:teamKit('#0c2340','#78be20'),lamelo:teamKit('#0c2340','#78be20'),jokic:teamKit('#0e2240','#fec524'),murray:teamKit('#0e2240','#fec524'),wemby:teamKit('#c4ced4','#000000'),castle:teamKit('#c4ced4','#000000')});
+/* LeBron wears the old Cavs wine and gold (Kobe and Shaq keep their own kit) */
+KITS.lebron=teamKit('#860038','#fdbb30');
+Object.assign(KITS,{tatum:teamKit('#007a33','#ffffff'),george:teamKit('#007a33','#ffffff')});
+Object.assign(KITS,{amen:teamKit('#ce1141','#ffffff'),sengun:teamKit('#ce1141','#ffffff'),jjohnson:teamKit('#1a1a1a','#e03a3e'),ddaniels:teamKit('#1a1a1a','#e03a3e'),brunson:teamKit('#006bb6','#f58426'),kat:teamKit('#006bb6','#f58426'),banchero:teamKit('#0077c0','#000000'),wagner:teamKit('#0077c0','#000000'),barnes:teamKit('#ce1141','#000000'),kawhi:teamKit('#ce1141','#000000'),mpj:teamKit('#000000','#ffffff'),randle:teamKit('#000000','#ffffff')});
 const TEAMS=[
   {id:'GOAT',name:'The GOATs',col:'#ffd166'},
   {id:'Hall of Fame',name:'Hall of Fame',col:'#e8e2c9'},
   {id:'Warriors',name:'Warriors',col:'#ffc72c'},
   {id:'Heat',name:'Heat',col:'#f9a01b'},
-  {id:'Cavs',name:'Cavs',col:'#fdbb30'},
-  {id:'Mavs',name:'Mavs',col:'#4aa3df'},
+  {id:'Cavs',name:'Cleveland Cavaliers',col:'#fdbb30'},
+  {id:'Mavs',name:'Mavericks',col:'#4aa3df'},
   {id:'Lakers',name:'Lakers',col:'#8f6bd6'},
-  {id:'Thunder',name:'OKC Thunder',col:'#3fa9f5'},
+  {id:'Thunder',name:'Thunder',col:'#3fa9f5'},
   {id:'76ers',name:'76ers',col:'#ed174c'},
   {id:'Pistons',name:'Pistons',col:'#e8553c'},
   {id:'Wizards',name:'Wizards',col:'#e31837'},
   {id:'Trail Blazers',name:'Trail Blazers',col:'#e03a3e'},
   {id:'Timberwolves',name:'Timberwolves',col:'#4fa3e0'},
   {id:'Nuggets',name:'Nuggets',col:'#fec524'},
-  {id:'Spurs',name:'Spurs',col:'#c4ced4'}
+  {id:'Spurs',name:'Spurs',col:'#c4ced4'},
+  {id:'Rockets',name:'Rockets',col:'#ce1141'},
+  {id:'Hawks',name:'Hawks',col:'#e03a3e'},
+  {id:'Knicks',name:'Knicks',col:'#f58426'},
+  {id:'Magic',name:'Magic',col:'#0077c0'},
+  {id:'Raptors',name:'Raptors',col:'#ce1141'},
+  {id:'Nets',name:'Nets',col:'#9aa0a6'},
+  {id:'Celtics',name:'Celtics',col:'#007a33'}
 ];
 /* deep: three-point window, fin: layup window, dunk: dunk frequency, stl: steal success, dcd: dash cooldown, blkW: seconds a shot can be blocked, sec: ball security */
 const CH=[
-  {name:'Jordan',look:'jordan',team:'GOAT',number:'23',col:'#ff4d5e',skin:'#8d5a3b',skin2:'#74482f',spd:190,jump:600,zone:1.1,reach:36,deep:.85,fin:1.15,dunk:1.3,stl:.8,dcd:1.3,blkW:.3,sec:0,
+  {name:'Michael Jordan',look:'jordan',team:'GOAT',number:'23',col:'#ff4d5e',skin:'#8d5a3b',skin2:'#74482f',spd:190,jump:600,zone:1.1,reach:36,deep:.85,fin:1.15,dunk:1.3,stl:.8,dcd:1.3,blkW:.3,sec:0,
     tk:{name:'FLIGHT MODE',desc:'quicker, deadly mid-range, more dunks, grabbing hands',spd:1.06,mid:1.3,dunk:1.4,stl:.15,dcd:.6,fin:1.1},tkm:{stl:1.4,two:1.2,dunk:1.2,blk:1},
     tag:'Shooting guard \u00b7 the scorer',up:'Explosive leaper, deadly fadeaways, elite hands for steals, loves to dunk',down:'Only average from three'},
-  {name:'LeBron',look:'lebron',team:'GOAT',number:'23',col:'#fdb927',skin:'#7b4b33',skin2:'#633b27',spd:166,jump:565,zone:1,reach:46,deep:.8,fin:1.25,dunk:1.2,stl:.7,dcd:1.5,blkW:.45,sec:.2,
+  {name:'LeBron James',look:'lebron',team:'GOAT',number:'23',col:'#fdb927',skin:'#7b4b33',skin2:'#633b27',spd:166,jump:565,zone:1,reach:46,deep:.8,fin:1.25,dunk:1.2,stl:.7,dcd:1.5,blkW:.45,sec:.2,
     tk:{name:'KING OF THE PAINT',desc:'bulldozes inside, lockdown blocks, almost impossible to strip',spd:1.08,fin:1.3,dunk:1.4,blk:.25,reach:14,sec:.3,mom:.5},tkm:{blk:1.5,dunk:1.3,two:1.1,stl:.9},
     tag:'Forward \u00b7 the powerhouse',up:'Finishes through contact, chase-down blocks, hard to strip',down:'Slower, and streaky from deep'},
-  {name:'Curry',look:'curry',team:'Warriors',number:'30',col:'#5a9bff',skin:'#b07a54',skin2:'#8f6141',spd:182,jump:545,zone:1.25,reach:29,deep:1.5,fin:.85,dunk:.2,stl:.62,dcd:1,blkW:.22,sec:0,
+  {name:'Stephen Curry',look:'curry',team:'Warriors',number:'30',col:'#5a9bff',skin:'#b07a54',skin2:'#8f6141',spd:182,jump:545,zone:1.25,reach:29,deep:1.5,fin:.85,dunk:.2,stl:.62,dcd:1,blkW:.22,sec:0,
     tk:{name:'HEAT CHECK',desc:'bigger deep window, shoots through contests, fast dash',deep:1.2,mid:1.15,cont:.5,mom:0,dcd:.6,spd:1.04},tkm:{three:1.4,green:1.6,blk:.5,stl:.8,dunk:.5},
     tag:'Point guard \u00b7 the shooter',up:'Greatest shooter ever: huge deep window, quick handles, fast dash',down:'Small at the rim: weaker layups, rarely dunks, poor blocker'},
   {name:'Yaxel Lendeborg',look:'yaxel',team:'Warriors',number:'23',col:'#ffc72c',skin:'#c08d63',skin2:'#a3724c',spd:176,jump:570,zone:1.05,reach:40,deep:1.05,fin:1.1,dunk:1,stl:.75,dcd:1.3,blkW:.35,sec:.05,
@@ -246,7 +263,7 @@ const CH=[
   {name:'Bam Adebayo',look:'bam',team:'Heat',number:'13',col:'#e03a3e',skin:'#8a5a3c',skin2:'#704730',spd:172,jump:570,zone:1.05,reach:44,deep:.75,fin:1.15,dunk:1.1,stl:.75,dcd:1.4,blkW:.42,sec:.1,
     tk:{name:'DEFENSIVE ANCHOR',desc:'lockdown blocks and steals, sturdy mid-range',blk:.25,stl:.15,mid:1.25,reach:10,spd:1.05},tkm:{blk:1.4,stl:1.2,two:1.1},
     tag:'Center \u00b7 the anchor',up:'Elite defender, sturdy mid-range, hard to move off the block',down:'Limited from deep'},
-  {name:'Giannis',look:'giannis',team:'Heat',number:'34',col:'#f9a01b',skin:'#7b4b33',skin2:'#633b27',spd:175,jump:580,zone:1,reach:48,deep:.5,fin:1.35,dunk:1.5,stl:.65,dcd:1.2,blkW:.4,sec:.15,
+  {name:'Giannis Antetokounmpo',look:'giannis',team:'Heat',number:'34',col:'#f9a01b',skin:'#7b4b33',skin2:'#633b27',spd:175,jump:580,zone:1,reach:48,deep:.5,fin:1.35,dunk:1.5,stl:.65,dcd:1.2,blkW:.4,sec:.15,
     tk:{name:'GREEK FREAK',desc:'unstoppable strides to the rim, huge dunks, long arms',spd:1.08,fin:1.3,dunk:1.5,reach:12,dcd:.6},tkm:{dunk:1.4,poster:1.3,blk:1.2},
     tag:'Forward \u00b7 the freak',up:'Euro-step finisher, relentless dunker, huge wingspan',down:'Shaky from three'},
   {name:'Donovan Mitchell',look:'mitchell',team:'Cavs',number:'45',col:'#c4163f',skin:'#9a6a48',skin2:'#7c5238',spd:188,jump:590,zone:1.1,reach:34,deep:1.05,fin:1.1,dunk:.9,stl:.7,dcd:1.2,blkW:.25,sec:0,
@@ -273,7 +290,7 @@ const CH=[
   {name:'Austin Reaves',look:'reaves',team:'Lakers',number:'15',col:'#e0a458',skin:'#ecc4a0',skin2:'#d2a781',spd:180,jump:545,zone:1.1,reach:33,deep:1.1,fin:1.15,dunk:.35,stl:.75,dcd:1.2,blkW:.22,sec:.2,
     tk:{name:'ICE IN HIS VEINS',desc:'cold in the clutch, strong finisher, shoots through contests',deep:1.2,fin:1.2,cont:.5,mid:1.2,dcd:.7},tkm:{two:1.2,three:1.1,green:1.2},
     tag:'Guard \u00b7 the heady scorer',up:'Smart finisher through contact, solid shooter, good hands',down:'Rarely dunks, not a shot blocker'},
-  {name:'Shai',look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
+  {name:'Shai Gilgeous-Alexander',look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
     tk:{name:'MVP MODE',desc:'unstoppable drives, deadly mid-range, steals, fast dash',spd:1.06,mid:1.3,fin:1.2,stl:.15,dcd:.5,cont:.6},tkm:{two:1.3,stl:1.2,green:1.2},
     tag:'Guard \u00b7 the slasher',up:'Elite mid-range and finishing, strong hands, hard to stop',down:'Not a dunker, average from three'},
   {name:'Chet Holmgren',look:'chet',team:'Thunder',number:'7',col:'#ff6a3d',skin:'#a87650',skin2:'#8c6040',spd:164,jump:585,zone:1.1,reach:54,deep:1.15,fin:1.2,dunk:1.1,stl:.6,dcd:1.4,blkW:.5,sec:-.2,
@@ -320,7 +337,49 @@ const CH=[
     tag:'Center \u00b7 the unicorn',up:'Seven-footer with range, elite shot blocker',down:'Still thin, easy to bump off the ball',sc:1.15,face:{hair:'#17110d',style:'fade'}},
   {name:'Stephon Castle',look:'castle',team:'Spurs',number:'5',col:'#8c96a0',skin:'#5c3a28',skin2:'#4a2d1e',spd:183,jump:540,zone:1.1,reach:36,deep:.8,fin:1.1,dunk:.6,stl:.85,dcd:1.2,blkW:.25,sec:.2,
     tk:{name:'LOCKDOWN',desc:'steals and quick hands, bulldozes to the rim',stl:.15,fin:1.15,sec:.3},tkm:{stl:1.3,two:1.1},
-    tag:'Guard \u00b7 the lockdown',up:'Elite on-ball defender, strong finisher, quick hands',down:'Shaky shooter, not yet a threat from deep',sc:1.02,face:{hair:'#17110d',style:'short'}}
+    tag:'Guard \u00b7 the lockdown',up:'Elite on-ball defender, strong finisher, quick hands',down:'Shaky shooter, not yet a threat from deep',sc:1.02,face:{hair:'#17110d',style:'short'}},
+  {name:'Amen Thompson',look:'amen',team:'Rockets',number:'1',col:'#ce1141',skin:'#7b4b33',skin2:'#633b27',spd:184,jump:575,zone:1.05,reach:38,deep:.75,fin:1.2,dunk:1.1,stl:.8,dcd:1.2,blkW:.3,sec:.1,
+    tk:{name:'LOCKDOWN HANDS',desc:'quicker, steals and rim pressure',spd:1.05,stl:0.1,dunk:1.1},tkm:{stl:1.3,dunk:1.1},
+    tag:'Guard \u00b7 the disruptor',up:'Quick hands, athletic finisher, pesky defender',down:'Still developing as a shooter',face:{hair:'#17110d',style:'short'}},
+  {name:'Alperen \u015eeng\u00fcn',look:'sengun',team:'Rockets',number:'28',col:'#ff8a9a',skin:'#a87650',skin2:'#8c6040',spd:150,jump:540,zone:.95,reach:50,deep:.2,fin:1.3,dunk:1.1,stl:.5,dcd:1.4,blkW:.45,sec:.25,
+    tk:{name:'INSIDE HUB',desc:'passes and rebounds, strong at the rim',fin:1.2,reach:8},tkm:{blk:1.3,dunk:1.1},
+    tag:'Center \u00b7 the passer',up:'Great hands and passing, tough inside',down:'Slow, and no threat from deep',face:{hair:'#17110d',style:'short'}},
+  {name:'Jalen Johnson',look:'jjohnson',team:'Hawks',number:'1',col:'#e03a3e',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:580,zone:1,reach:44,deep:.8,fin:1.2,dunk:1.3,stl:.7,dcd:1.3,blkW:.4,sec:.1,
+    tk:{name:'ALL-COURT',desc:'harder dunks, fast dash',dunk:1.3,spd:1.04},tkm:{dunk:1.3},
+    tag:'Forward \u00b7 the all-rounder',up:'Explosive dunker, rebounds and handles the ball well',down:'Inconsistent jumper',face:{hair:'#17110d',style:'short'}},
+  {name:'Dyson Daniels',look:'ddaniels',team:'Hawks',number:'5',col:'#ff6b6b',skin:'#6f4430',skin2:'#583522',spd:182,jump:550,zone:1.1,reach:40,deep:1,fin:1.1,dunk:.5,stl:.9,dcd:1.2,blkW:.25,sec:.2,
+    tk:{name:'THIEF MODE',desc:'nearly impossible to strip, grabs steals',stl:0.15,sec:0.2},tkm:{stl:1.4},
+    tag:'Guard \u00b7 the thief',up:'Top-tier steals, smart passer, fast dash',down:'Rarely dunks, average finisher',face:{hair:'#17110d',style:'short'}},
+  {name:'Jalen Brunson',look:'brunson',team:'Knicks',number:'11',col:'#f58426',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:530,zone:1.2,reach:30,deep:1.3,fin:1,dunk:.25,stl:.6,dcd:1,blkW:.15,sec:.3,
+    tk:{name:'CLUTCH',desc:'shoots through contests, deep range',deep:1.2,cont:0.4},tkm:{three:1.3,two:1.1},
+    tag:'Guard \u00b7 the sharpshooter',up:'Clutch shooter, excellent ball security',down:'Limited above the rim',face:{hair:'#17110d',style:'short'}},
+  {name:'Karl-Anthony Towns',look:'kat',team:'Knicks',number:'32',col:'#2a7bd6',skin:'#7b4b33',skin2:'#633b27',spd:156,jump:555,zone:1,reach:50,deep:.9,fin:1.1,dunk:.9,stl:.45,dcd:1.3,blkW:.4,sec:.05,
+    tk:{name:'STRETCH',desc:'long-range shots and blocks',deep:1.2,blk:0.2},tkm:{three:1.3,blk:1.2},
+    tag:'Big \u00b7 the shooter',up:'Stretch big who shoots from deep, strong rebounder',down:'Less mobile, weaker on defense',face:{hair:'#17110d',style:'short'}},
+  {name:'Paolo Banchero',look:'banchero',team:'Magic',number:'5',col:'#0077c0',skin:'#8a5a3c',skin2:'#704730',spd:168,jump:570,zone:1,reach:44,deep:.75,fin:1.25,dunk:1.3,stl:.6,dcd:1.4,blkW:.35,sec:.1,
+    tk:{name:'POWER MOVE',desc:'finishes through contact, bulldozes inside',fin:1.2,dunk:1.2},tkm:{dunk:1.3},
+    tag:'Forward \u00b7 the powerhouse',up:'Strong finisher, creates his own shot',down:'Average range and slow on the break',face:{hair:'#17110d',style:'short'}},
+  {name:'Franz Wagner',look:'wagner',team:'Magic',number:'22',col:'#3d9be9',skin:'#b07a54',skin2:'#8f6141',spd:176,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.8,stl:.75,dcd:1.3,blkW:.3,sec:.15,
+    tk:{name:'ON THE MOVE',desc:'quick dash and steals',dcd:0.7,stl:0.08},tkm:{stl:1.2,two:1.1},
+    tag:'Forward \u00b7 the versatile',up:'Smart two-way player, reliable from mid-range',down:'Not an elite dunker',face:{hair:'#17110d',style:'short'}},
+  {name:'Scottie Barnes',look:'barnes',team:'Raptors',number:'4',col:'#ce1141',skin:'#6f4430',skin2:'#583522',spd:172,jump:560,zone:1,reach:44,deep:.6,fin:1.15,dunk:1,stl:.85,dcd:1.3,blkW:.35,sec:.1,
+    tk:{name:'SHUTDOWN',desc:'blocks and steals, bulldozes',stl:0.1,blk:0.2},tkm:{blk:1.4,stl:1.2},
+    tag:'Forward \u00b7 the defender',up:'Elite defender, great handles for his size',down:'Weak outside shot',face:{hair:'#17110d',style:'short'}},
+  {name:'Kawhi Leonard',look:'kawhi',team:'Raptors',number:'2',col:'#a5acaf',skin:'#7b4b33',skin2:'#633b27',spd:170,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.6,stl:.8,dcd:1.2,blkW:.3,sec:.3,
+    tk:{name:'CLAMP',desc:'hard to strip, steals',sec:0.3,stl:0.1},tkm:{stl:1.3},
+    tag:'Forward \u00b7 the cool hand',up:'Hard to guard, great ball security and steals',down:'Rarely dunks, slower in transition',face:{hair:'#17110d',style:'braids'}},
+  {name:'Michael Porter Jr.',look:'mpj',team:'Nets',number:'1',col:'#c0c5ca',skin:'#c08a62',skin2:'#a06f4c',spd:170,jump:540,zone:1.15,reach:36,deep:1.35,fin:.95,dunk:.6,stl:.5,dcd:1.2,blkW:.2,sec:.2,
+    tk:{name:'DEEP RANGE',desc:'bigger three window, quick release',deep:1.3,cont:0.3},tkm:{three:1.4},
+    tag:'Forward \u00b7 the sniper',up:'Deadly from three, quick release',down:'Weak defender, rarely blocks shots',face:{hair:'#17110d',style:'short'}},
+  {name:'Julius Randle',look:'randle',team:'Nets',number:'30',col:'#7d8389',skin:'#8d5a3b',skin2:'#74482f',spd:156,jump:540,zone:.95,reach:48,deep:.5,fin:1.35,dunk:1.2,stl:.55,dcd:1.3,blkW:.4,sec:.05,
+    tk:{name:'PAINT POWER',desc:'bulldozes inside, finishes through contact',fin:1.3,dunk:1.2},tkm:{dunk:1.2,two:1.1},
+    tag:'Forward \u00b7 the bruiser',up:'Powerful finisher, strong inside',down:'Poor from deep, slow to recover',face:{hair:'#17110d',style:'short'}},
+  {name:'Jayson Tatum',look:'tatum',team:'Celtics',number:'0',col:'#007a33',skin:'#7b4b33',skin2:'#633b27',spd:178,jump:565,zone:1.1,reach:42,deep:.9,fin:1.2,dunk:1.1,stl:.6,dcd:1.2,blkW:.3,sec:.2,
+    tk:{name:'ISO SCORER',desc:'unstoppable one-on-one, deadly fadeaways',deep:1.15,fin:1.1,cont:.4},tkm:{two:1.3,three:1.2},
+    tag:'Forward \u00b7 the scorer',up:'Smooth scorer, great from mid-range and three, strong rebounder',down:'Can be streaky late in games',face:{hair:'#17110d',style:'short'}},
+  {name:'Paul George',look:'george',team:'Celtics',number:'13',col:'#1d6b3a',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:555,zone:1.1,reach:40,deep:1.2,fin:1.05,dunk:.7,stl:.85,dcd:1.2,blkW:.35,sec:.15,
+    tk:{name:'LOCKDOWN WING',desc:'tough on defense, quick hands for steals',stl:.12,sec:.2},tkm:{stl:1.3,three:1.2},
+    tag:'Wing \u00b7 the defender',up:'Excellent perimeter defender, reliable three-point shooter',down:'Less explosive finishing',face:{hair:'#17110d',style:'short'}}
 ];
 /* Looks, build and numbers for the newer players. face: hair color/style, beard, extras. sc: body size (1 = average). */
 const EXTRA={
@@ -833,6 +892,8 @@ function resetPositions(to){
 const hexRGB=h=>[1,3,5].map(i=>parseInt(h.slice(i,i+2),16));
 /* two players whose home kits look alike: the second one wears the alternate kit */
 function kitsClash(a,b){
+  /* same team always means one player wears the away kit */
+  if(a.team===b.team&&a.team!=='GOAT')return true;   /* the GOATs are exempt: teammates there keep home kits */
   const x=hexRGB(KITS[a.look].home.jersey),y=hexRGB(KITS[b.look].home.jersey);
   return Math.hypot(x[0]-y[0],x[1]-y[1],x[2]-y[2])<70;
 }
@@ -2026,6 +2087,11 @@ function drawFace(g,f,fc,skin,cx,cy){
   g.fillStyle=hc;
   if(fc.style==='bald'){g.fillStyle='rgba(0,0,0,.1)';g.fillRect(cx-10,cy-10,20,4.5)}
   else if(fc.style==='fade'){g.fillRect(cx-10,cy-10,20,4.6);g.fillRect(back,cy-10,5,9)}
+  else if(fc.style==='braids'){
+    g.fillRect(cx-10,cy-10,20,7);
+    g.fillStyle=skin;for(const y of [cy-8.4,cy-5.9,cy-3.4])g.fillRect(cx-10,y,20,.9);
+    g.fillStyle=hc;for(let i=0;i<4;i++)g.fillRect(back+i*1.8,cy-6,1.4,13);
+  }
   else if(fc.style==='recede'){g.fillRect(f>0?cx-10:cx-4,cy-10,14,5.5);g.fillRect(back,cy-10,6,10)}
   else{g.fillRect(cx-10,cy-10,20,6.5);g.fillRect(back,cy-10,7,13)}
   if(fc.band){g.fillStyle=fc.band;g.fillRect(cx-10,cy-6.5,20,2.4)}
@@ -2379,13 +2445,22 @@ function playSeries(m){
   m.done=true;m.winner=m.wa===m.need?m.a:m.b;
 }
 function simOthers(T){T.rounds[T.r].forEach(m=>{if(!m.done&&!isHuman(m))playSeries(m)})}
+/* conference for each team. The GOATs (Jordan, LeBron) are East and the Hall of Fame (Kobe, Shaq) are West */
+const CONF={GOAT:'E','Hall of Fame':'W',Warriors:'W',Heat:'E',Cavs:'E',Mavs:'W',Lakers:'W',Thunder:'W','76ers':'E',Pistons:'E',Wizards:'E','Trail Blazers':'W',Timberwolves:'W',Nuggets:'W',Spurs:'W',Rockets:'W',Hawks:'E',Knicks:'E',Magic:'E',Raptors:'E',Nets:'E',Celtics:'E'};
+const confOf=i=>CONF[CH[i].team];
+/* 16 entrants: 8 from the East and 8 from the West. You are always in your own conference's half */
 function newTournament(){
-  /* 16 entrants: the player plus 15 random others */
-  const ids=CH.map((_,i)=>i).filter(i=>i!==flow.ch);
-  for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
-  ids.length=15;ids.push(flow.ch);
-  for(let i=ids.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[ids[i],ids[j]]=[ids[j],ids[i]]}
-  const first=[];for(let i=0;i<ids.length;i+=2)first.push(newMatch(ids[i],ids[i+1]));
+  const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+  const mine=confOf(flow.ch);
+  const others=c=>shuffle(CH.map((_,i)=>i).filter(i=>confOf(i)===c&&i!==flow.ch));
+  const half={E:others('E'),W:others('W')};
+  half[mine]=[flow.ch,...half[mine].slice(0,7)];
+  half[mine==='E'?'W':'E']=half[mine==='E'?'W':'E'].slice(0,8);
+  const first=[];
+  for(const c of ['E','W']){
+    const ids=shuffle(half[c]);
+    for(let i=0;i<ids.length;i+=2)first.push(newMatch(ids[i],ids[i+1]));
+  }
   flow.tour={rounds:[first],r:0,out:false,champ:null};
   simOthers(flow.tour);
 }
@@ -2403,20 +2478,31 @@ function tourAdvance(T){
 function finishTour(T){
   for(let g=0;T.champ===null&&g<6;g++){T.rounds[T.r].forEach(m=>{if(!m.done)playSeries(m)});tourAdvance(T)}
 }
+/* last name only, skipping suffixes like Jr. */
+const SHORTNAME={'Michael Porter Jr.':'MPJ','Shai Gilgeous-Alexander':'SGA','Shaquille O\u2019Neal':'Shaq','Kobe Bryant':'Kobe'};
+const lastName=n=>{if(SHORTNAME[n])return SHORTNAME[n];const w=n.split(' ').filter(x=>!/^(Jr\.|Sr\.|II|III|IV)$/.test(x));return w[w.length-1]};
 function matchHTML(m){
   const row=(i,w)=>{const c=CH[i],won=m.done&&m.winner===i;
-    return `<div class="mrow${i===flow.ch?' me':''}${won?' won':''}${m.done&&!won?' out':''}" style="--c:${c.col}"><img class="av" src="${portrait(c)}" alt=""><span class="nm">${c.name}</span><b class="sc">${w}</b></div>`};
+    return `<div class="mrow${i===flow.ch?' me':''}${won?' won':''}${m.done&&!won?' out':''}" style="--c:${c.col}"><img class="av" src="${portrait(c)}" alt=""><span class="nm">${lastName(c.name)}</span><b class="sc">${w}</b></div>`};
   const pips=m.games.map(g=>`<i class="${g[0]>g[1]?'top':'bot'}"></i>`).join('');
   return `<div class="match${isHuman(m)?' mine':''}${m.done?'':''}">${row(m.a,m.wa)}${row(m.b,m.wb)}${m.games.length?`<div class="pips">${pips}</div>`:''}</div>`;
 }
 function bracketScreen(){
   const T=flow.tour;
   const tbd=m=>`<div class="match tbd"><div class="mrow"><span class="nm">To be decided</span></div><div class="mrow"><span class="nm">&nbsp;</span></div></div>`;
-  const cols=ROUNDS.map((name,ri)=>{
-    const rd=T.rounds[ri];
-    const body=rd?rd.map(matchHTML).join(''):Array.from({length:CH.length/Math.pow(2,ri+1)},()=>tbd()).join('');
-    return `<div class="rcol"><h4>${name}</h4><div class="rbody">${body}</div></div>`;
-  }).join('');
+  /* East on the left, West on the right, the Finals in the middle. Each side plays its own rounds inward. */
+  const short=['Round 1','Semis','Conf. Final'];
+  const side=(ri,which)=>{
+    const rd=T.rounds[ri],per=4/Math.pow(2,ri);
+    if(!rd)return Array.from({length:per},()=>tbd()).join('');
+    const part=which==='E'?rd.slice(0,per):rd.slice(per,per*2);
+    return part.map(matchHTML).join('');
+  };
+  const col=(name,body)=>`<div class="rcol"><h4>${name}</h4><div class="rbody">${body}</div></div>`;
+  const eastCols=[0,1,2].map(ri=>col('East · '+short[ri],side(ri,'E'))).join('');
+  const westCols=[2,1,0].map(ri=>col('West · '+short[ri],side(ri,'W'))).join('');
+  const finalBody=T.rounds[3]?T.rounds[3].map(matchHTML).join(''):tbd();
+  const cols=eastCols+col('Finals',finalBody)+westCols;
   const menu='<button class="btn" data-act="home" type="button">Main menu</button>';
   let title,action;
   if(T.champ!==null){title=T.champ===flow.ch?'You are champion':CH[T.champ].name+' wins it all';action=menu}
@@ -2427,7 +2513,23 @@ function bracketScreen(){
     action=`<button class="btn" data-act="home" type="button">Quit</button><button class="btn primary" data-act="play" type="button">${hm.need>1?'Play Game '+(hm.games.length+1):'Play'} vs ${CH[op].name}</button>`;
   }
   showScreen(`<div class="card xl"><p class="eyebrow">Tournament</p><h2>${title}</h2><div class="bracket">${cols}</div><div class="row">${action}</div></div>`);
+  fitBracket();
 }
+/* shrink the bracket just enough that the whole tournament screen fits the window height, so nothing scrolls */
+function fitBracket(){
+  const b=scr.querySelector('.bracket');
+  if(!b)return;
+  let z=1;
+  for(let k=0;k<6;k++){
+    b.style.zoom=z;
+    const over=scr.scrollHeight-scr.clientHeight;
+    if(over<=2||z<=.5)break;
+    const hb=b.getBoundingClientRect().height/z;
+    z=Math.max(.5,z*(hb*z-over-6)/(hb*z));
+  }
+  b.style.zoom=z.toFixed(3);
+}
+addEventListener('resize',()=>{if(scr.querySelector('.bracket'))fitBracket()});
 function statsHTML(res){
   if(!res.stats)return '';
   const [A,B]=res.stats,n=res.names;
@@ -2495,7 +2597,7 @@ scr.addEventListener('click',e=>{
   const act=t.dataset.act;
   if(act==='single')singleScreen();
   else if(act==='back'){if(flow.mode==='two')twoScreen();else if(flow.mode==='online')homeScreen();else singleScreen()}
-  else if(act==='quick'){flow.mode='quick';flow.slot=0;if(flow.ch2===flow.ch)flow.ch2=CH.findIndex((_,k)=>k!==flow.ch);pickScreen()}
+  else if(act==='quick'){flow.mode='quick';flow.slot=0;const others=CH.map((_,k)=>k).filter(k=>k!==flow.ch);flow.ch2=others[Math.floor(Math.random()*others.length)];pickScreen()}
   else if(act==='two')twoScreen();
   else if(act==='localtwo'){flow.mode='two';flow.slot=0;if(flow.ch2===flow.ch)flow.ch2=CH.findIndex((_,k)=>k!==flow.ch);pickScreen()}
   else if(act==='twoscreen')twoScreen();
