@@ -141,6 +141,8 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .binds .bgrid{display:grid;grid-template-columns:1fr 1fr;gap:5px 16px}
 .binds kbd{margin:0 2px}
 .bracket{display:flex;gap:6px;overflow:hidden;padding:4px 2px 8px;width:100%;box-sizing:border-box}
+.card.xl.bracketcard{flex:1 1 auto;min-width:0;max-width:none;width:auto;margin:0;display:flex;flex-direction:column;box-sizing:border-box}
+.bracketcard .bracket{flex:1 1 0;min-height:0}
 .rcol{flex:1 1 0;min-width:0;display:flex;flex-direction:column}
 .bracket .rcol h4{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:9px;letter-spacing:.06em;padding:0 2px 7px}
 .bracket .nm{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -2512,20 +2514,21 @@ function bracketScreen(){
     title=ROUNDS[T.r];
     action=`<button class="btn" data-act="home" type="button">Quit</button><button class="btn primary" data-act="play" type="button">${hm.need>1?'Play Game '+(hm.games.length+1):'Play'} vs ${CH[op].name}</button>`;
   }
-  showScreen(`<div class="card xl"><p class="eyebrow">Tournament</p><h2>${title}</h2><div class="bracket">${cols}</div><div class="row">${action}</div></div>`);
+  showScreen(`<div class="card xl bracketcard"><div class="bracket">${cols}</div><div class="row">${action}</div></div>`);
   fitBracket();
 }
 /* shrink the bracket just enough that the whole tournament screen fits the window height, so nothing scrolls */
 function fitBracket(){
   const b=scr.querySelector('.bracket');
   if(!b)return;
+  const bodies=[...b.querySelectorAll('.rbody')];
   let z=1;
-  for(let k=0;k<6;k++){
+  for(let k=0;k<8;k++){
     b.style.zoom=z;
-    const over=scr.scrollHeight-scr.clientHeight;
-    if(over<=2||z<=.5)break;
-    const hb=b.getBoundingClientRect().height/z;
-    z=Math.max(.5,z*(hb*z-over-6)/(hb*z));
+    const over=Math.max(0,...bodies.map(r=>r.scrollHeight-r.clientHeight));
+    if(over<=1||z<=.5)break;
+    const h=bodies[0].clientHeight;
+    z=Math.max(.5,z*h/(h+over+4));
   }
   b.style.zoom=z.toFixed(3);
 }
