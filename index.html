@@ -66,6 +66,14 @@ canvas{display:block;width:100%;height:100%}
 .pick .sw.tk{color:var(--warm)}
 .pick .sw.dn{color:#ffb37a}
 .pick:disabled{opacity:.4;cursor:not-allowed}
+.dice svg{display:block;margin:auto}
+.sidehead{display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:6px}
+.sidehead .sidelbl{margin:0}
+.sidehead .dice{flex:none}
+.titlerow{display:flex;align-items:center;justify-content:center;gap:12px}
+.titlerow h2{margin:0}
+.titlerow .dice{flex:none}
+.dice.rolling{border-color:var(--warm);color:var(--warm)}
 .pick .ph{width:64px;height:64px;border-radius:8px;margin-bottom:4px}
 .pick .dot{width:14px;height:14px;border-radius:50%;background:var(--c)}
 .pick.on{border-color:var(--c);box-shadow:inset 0 0 0 1px var(--c)}
@@ -333,7 +341,7 @@ const CH=[
   {name:'Nikola Jokić',look:'jokic',team:'Nuggets',number:'15',col:'#fec524',skin:'#8d5b3b',skin2:'#74482f',spd:140,jump:500,zone:1.1,reach:46,deep:.6,fin:1.2,dunk:.4,stl:.45,dcd:1.5,blkW:.3,sec:.35,
     tk:{name:'TRIPLE-DOUBLE',desc:'vision, soft touch, deadly mid-range',mid:1.2,sec:.2,fin:1.15},tkm:{two:1.2,green:1.2},
     tag:'Center \u00b7 the maestro',up:'Elite passer, soft touch, impossible to bump off the block',down:'Slow, limited athleticism',sc:1.1,face:{hair:'#17110d',style:'short',beard:'stubble'}},
-  {name:'Jamal Murray',look:'murray',team:'Nuggets',number:'27',col:'#ffe08a',skin:'#6f4430',skin2:'#583522',spd:184,jump:555,zone:1.15,reach:32,deep:1.25,fin:1.05,dunk:.4,stl:.65,dcd:1.2,blkW:.2,sec:.25,
+  {name:'Jamal Murray',look:'murray',team:'Nuggets',number:'27',col:'#ffe08a',skin:'#c8956a',skin2:'#ad7a55',spd:184,jump:555,zone:1.15,reach:32,deep:1.25,fin:1.05,dunk:.4,stl:.65,dcd:1.2,blkW:.2,sec:.25,
     tk:{name:'MURRAY TIME',desc:'deep window, shoots through contests, quick dash',deep:1.2,cont:.5,dcd:.7},tkm:{three:1.2,green:1.2},
     tag:'Guard \u00b7 the streak shooter',up:'Clutch shooter, quick first step, tough through contact',down:'Average on defense, inconsistent',sc:.97,face:{hair:'#17110d',style:'fade'}},
   {name:'Victor Wembanyama',look:'wemby',team:'Spurs',number:'1',col:'#c4ced4',skin:'#8d6240',skin2:'#74502f',spd:164,jump:610,zone:1.1,reach:60,deep:.85,fin:1.1,dunk:1.1,stl:.5,dcd:1.3,blkW:.6,sec:-.1,
@@ -348,10 +356,10 @@ const CH=[
   {name:'Alperen \u015eeng\u00fcn',look:'sengun',team:'Rockets',number:'28',col:'#ff8a9a',skin:'#a87650',skin2:'#8c6040',spd:150,jump:540,zone:.95,reach:50,deep:.2,fin:1.3,dunk:1.1,stl:.5,dcd:1.4,blkW:.45,sec:.25,
     tk:{name:'INSIDE HUB',desc:'passes and rebounds, strong at the rim',fin:1.2,reach:8},tkm:{blk:1.3,dunk:1.1},
     tag:'Center \u00b7 the passer',up:'Great hands and passing, tough inside',down:'Slow, and no threat from deep',face:{hair:'#17110d',style:'short'}},
-  {name:'Jalen Johnson',look:'jjohnson',team:'Hawks',number:'1',col:'#e03a3e',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:580,zone:1,reach:44,deep:.8,fin:1.2,dunk:1.3,stl:.7,dcd:1.3,blkW:.4,sec:.1,
+  {name:'Jalen Johnson',look:'jjohnson',team:'Hawks',number:'1',col:'#e03a3e',skin:'#c99a70',skin2:'#ab7f58',spd:176,jump:580,zone:1,reach:44,deep:.8,fin:1.2,dunk:1.3,stl:.7,dcd:1.3,blkW:.4,sec:.1,
     tk:{name:'ALL-COURT',desc:'harder dunks, fast dash',dunk:1.3,spd:1.04},tkm:{dunk:1.3},
     tag:'Forward \u00b7 the all-rounder',up:'Explosive dunker, rebounds and handles the ball well',down:'Inconsistent jumper',face:{hair:'#17110d',style:'short'}},
-  {name:'Dyson Daniels',look:'ddaniels',team:'Hawks',number:'5',col:'#ff6b6b',skin:'#6f4430',skin2:'#583522',spd:182,jump:550,zone:1.1,reach:40,deep:1,fin:1.1,dunk:.5,stl:.9,dcd:1.2,blkW:.25,sec:.2,
+  {name:'Dyson Daniels',look:'ddaniels',team:'Hawks',number:'5',col:'#ff6b6b',skin:'#c08a62',skin2:'#a06f4c',spd:182,jump:550,zone:1.1,reach:40,deep:1,fin:1.1,dunk:.5,stl:.9,dcd:1.2,blkW:.25,sec:.2,
     tk:{name:'THIEF MODE',desc:'nearly impossible to strip, grabs steals',stl:0.15,sec:0.2},tkm:{stl:1.4},
     tag:'Guard \u00b7 the thief',up:'Top-tier steals, smart passer, fast dash',down:'Rarely dunks, average finisher',face:{hair:'#17110d',style:'short'}},
   {name:'Jalen Brunson',look:'brunson',team:'Knicks',number:'11',col:'#f58426',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:530,zone:1.2,reach:30,deep:1.3,fin:1,dunk:.25,stl:.6,dcd:1,blkW:.15,sec:.3,
@@ -360,7 +368,7 @@ const CH=[
   {name:'Karl-Anthony Towns',look:'kat',team:'Knicks',number:'32',col:'#2a7bd6',skin:'#7b4b33',skin2:'#633b27',spd:156,jump:555,zone:1,reach:50,deep:.9,fin:1.1,dunk:.9,stl:.45,dcd:1.3,blkW:.4,sec:.05,
     tk:{name:'STRETCH',desc:'long-range shots and blocks',deep:1.2,blk:0.2},tkm:{three:1.3,blk:1.2},
     tag:'Big \u00b7 the shooter',up:'Stretch big who shoots from deep, strong rebounder',down:'Less mobile, weaker on defense',face:{hair:'#17110d',style:'short'}},
-  {name:'Paolo Banchero',look:'banchero',team:'Magic',number:'5',col:'#0077c0',skin:'#8a5a3c',skin2:'#704730',spd:168,jump:570,zone:1,reach:44,deep:.75,fin:1.25,dunk:1.3,stl:.6,dcd:1.4,blkW:.35,sec:.1,
+  {name:'Paolo Banchero',look:'banchero',team:'Magic',number:'5',col:'#0077c0',skin:'#b07a54',skin2:'#8f6141',spd:168,jump:570,zone:1,reach:44,deep:.75,fin:1.25,dunk:1.3,stl:.6,dcd:1.4,blkW:.35,sec:.1,
     tk:{name:'POWER MOVE',desc:'finishes through contact, bulldozes inside',fin:1.2,dunk:1.2},tkm:{dunk:1.3},
     tag:'Forward \u00b7 the powerhouse',up:'Strong finisher, creates his own shot',down:'Average range and slow on the break',face:{hair:'#17110d',style:'short'}},
   {name:'Franz Wagner',look:'wagner',team:'Magic',number:'22',col:'#3d9be9',skin:'#b07a54',skin2:'#8f6141',spd:176,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.8,stl:.75,dcd:1.3,blkW:.3,sec:.15,
@@ -378,7 +386,7 @@ const CH=[
   {name:'Julius Randle',look:'randle',team:'Nets',number:'30',col:'#7d8389',skin:'#8d5a3b',skin2:'#74482f',spd:156,jump:540,zone:.95,reach:48,deep:.5,fin:1.35,dunk:1.2,stl:.55,dcd:1.3,blkW:.4,sec:.05,
     tk:{name:'PAINT POWER',desc:'bulldozes inside, finishes through contact',fin:1.3,dunk:1.2},tkm:{dunk:1.2,two:1.1},
     tag:'Forward \u00b7 the bruiser',up:'Powerful finisher, strong inside',down:'Poor from deep, slow to recover',face:{hair:'#17110d',style:'short'}},
-  {name:'Jayson Tatum',look:'tatum',team:'Celtics',number:'0',col:'#007a33',skin:'#7b4b33',skin2:'#633b27',spd:178,jump:565,zone:1.1,reach:42,deep:.9,fin:1.2,dunk:1.1,stl:.6,dcd:1.2,blkW:.3,sec:.2,
+  {name:'Jayson Tatum',look:'tatum',team:'Celtics',number:'0',col:'#007a33',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:565,zone:1.1,reach:42,deep:.9,fin:1.2,dunk:1.1,stl:.6,dcd:1.2,blkW:.3,sec:.2,
     tk:{name:'ISO SCORER',desc:'unstoppable one-on-one, deadly fadeaways',deep:1.15,fin:1.1,cont:.4},tkm:{two:1.3,three:1.2},
     tag:'Forward \u00b7 the scorer',up:'Smooth scorer, great from mid-range and three, strong rebounder',down:'Can be streaky late in games',face:{hair:'#17110d',style:'short'}},
   {name:'Paul George',look:'george',team:'Celtics',number:'13',col:'#1d6b3a',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:555,zone:1.1,reach:40,deep:1.2,fin:1.05,dunk:.7,stl:.85,dcd:1.2,blkW:.35,sec:.15,
@@ -403,6 +411,45 @@ const EXTRA={
   chet:{sc:1.1,face:{hair:'#2a1b12',style:'short'}}
 };
 CH.forEach(c=>Object.assign(c,EXTRA[c.look]||{}));
+/* Individual looks. face: hair colour, style (short, fade, bald, braids, recede, curly, long), beard (stubble, goatee, full, stache),
+   brow (heavy brow), band (headband colour), guard (mouthguard). skin/skin2: skin tones. h: height in inches, for players that
+   have no BODY entry below (turned into the body scale the same way, but their reach is left alone). Approximate, stylized, easy to tweak. */
+const LOOKS={
+  brown:{face:{hair:'#17110d',style:'fade',beard:'goatee'}},
+  duren:{face:{hair:'#17110d',style:'fade',beard:'stubble'}},
+  cade:{face:{hair:'#2a1b12',style:'short',beard:'stubble'}},
+  ad:{face:{hair:'#17110d',style:'short',brow:true}},
+  trae:{skin:'#a87650',face:{hair:'#2a1b12',style:'short'}},
+  avdija:{skin:'#d9aa82',face:{hair:'#2a1b12',style:'short',beard:'full'}},
+  lillard:{face:{hair:'#17110d',style:'fade',beard:'goatee'}},
+  edwards:{face:{hair:'#17110d',style:'fade',beard:'stubble'}},
+  lamelo:{skin:'#a87650',face:{hair:'#17110d',style:'short'}},
+  jokic:{skin:'#e6bf9c',skin2:'#c9a07e',face:{hair:'#4a3222',style:'short',beard:'full'}},
+  murray:{face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  castle:{face:{hair:'#17110d',style:'fade',beard:'stubble'}},
+  amen:{h:79,face:{hair:'#17110d',style:'short'}},
+  sengun:{h:83,skin:'#dcb08a',face:{hair:'#2a1b12',style:'short',beard:'full'}},
+  jjohnson:{h:81,face:{hair:'#17110d',style:'fade',beard:'goatee'}},
+  ddaniels:{h:80,face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  brunson:{h:74,skin:'#a87650',face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  kat:{h:84,skin:'#a87650',face:{hair:'#2a1b12',style:'short',beard:'full'}},
+  banchero:{h:82,face:{hair:'#17110d',style:'fade',beard:'full'}},
+  wagner:{h:82,skin:'#e6bf9c',face:{hair:'#8a6a3a',style:'short'}},
+  barnes:{h:80,face:{hair:'#17110d',style:'short',beard:'goatee'}},
+  kawhi:{h:78,face:{hair:'#17110d',style:'braids',beard:'stubble'}},
+  mpj:{h:82,skin:'#e6bf9c',face:{hair:'#6b4a2b',style:'short',beard:'full'}},
+  randle:{h:80,face:{hair:'#17110d',style:'fade',beard:'full'}},
+  tatum:{h:80,face:{hair:'#17110d',style:'short',beard:'stubble'}},
+  george:{h:80,face:{hair:'#17110d',style:'short',beard:'goatee'}}
+};
+const shade=(h,k)=>'#'+[1,3,5].map(i=>Math.round(parseInt(h.slice(i,i+2),16)*k).toString(16).padStart(2,'0')).join('');
+CH.forEach(c=>{
+  const L=LOOKS[c.look];if(!L)return;
+  const o=Object.assign({},L);
+  if(o.h){o.sc=Math.pow(o.h/79,.75);delete o.h}
+  if(o.skin&&!o.skin2)o.skin2=shade(o.skin,.82);
+  Object.assign(c,o);
+});
 /* real height and arm length (wingspan minus height), in inches, from published listings (approximate, not checked player by player).
    Body scale is height relative to 6'7", raised to 0.75 so the gaps are compressed (Wembanyama vs Curry is about 1.14x, not 1.19x).
    Arm length adds to the reach value, also compressed (2.2 reach per inch above the baseline). */
@@ -1087,7 +1134,7 @@ function launch(p,c){
   /* the shot counts from where the player jumped, not where they released it */
   const from=p.y<FLOOR-2&&p.jumpX!==undefined?p.jumpX:p.x;
   /* a three needs both feet clearly behind the line: the foot nearest the hoop (about 24px in from the centre) must be past it, so a foot touching the line is a two */
-  const pts=st.ft&&st.ft.p===p?1:Math.abs(from-h.x)-24>300?3:2;
+  const pts=st.ft&&st.ft.p===p?1:Math.abs(from-h.x)-24>316?3:2;
   /* The meter only sets the release: how far from the apex it was and how contested the shot is set the error.
      The path after that is simulated (gravity, rim, backboard), so a shot can go in, rim out, bank or miss. */
   let tier;
@@ -1706,6 +1753,24 @@ function update(dt){
 }
 /* ---------- free throws ---------- */
 /* the free-throw timing bar: a marker sweeps back and forth; release it in the green middle */
+/* clutch pressure, 0 to 1: free throws in the last 30 seconds (or overtime) with the score within 4 points.
+   The clock is stopped during free throws, so this stays steady for the whole trip to the line. */
+function ftPressure(){
+  if(!st||!st.ft)return 0;
+  if(!st.ot&&st.time>30)return 0;
+  const diff=Math.abs(st.p[0].score-st.p[1].score);
+  if(diff>4)return 0;
+  const late=st.ot?1:clamp(1-st.time/30,0,1);
+  return clamp((.35+.65*late)*(diff<=2?1:.6),0,1);
+}
+/* the rumble only runs while the free-throw shooter holds the ball and hasn't started the shot:
+   it starts when the ball is handed over, stops when the shot begins, and stays quiet while the shot is in the air */
+function ftShakeLevel(){
+  if(!st||!st.ft)return 0;
+  const p=st.ft.p;
+  if(st.ball.owner!==p||st.ball.state!=='held'||st.ball.shot||p.meter)return 0;
+  return ftPressure();
+}
 function ftBar(t){const f=(t/.9)%1;return f<.5?f*2:2-f*2}
 function ftRelease(p,o){
   const d=Math.abs(ftBar(p.meter.t)-.5)*2;   /* 0 at the centre of the green, 1 at the far edge */
@@ -2130,6 +2195,7 @@ function drawHead(g,f,look,skin,tongue,face){
   g.fillStyle='#fff';g.beginPath();g.arc(cx+f*3.4,cy-1.2,1.9,0,7);g.fill();
   g.fillStyle='#1b130e';g.beginPath();g.arc(cx+f*4,cy-1.2,1,0,7);g.fill();
   g.strokeStyle='#1b130e';g.lineWidth=1.1;g.beginPath();g.moveTo(cx+f*2,cy-3.8);g.lineTo(cx+f*5.2,cy-3.6);g.stroke();
+  if(face&&face.brow){g.strokeStyle=face.hair;g.lineWidth=2.6;g.beginPath();g.moveTo(cx+f*.2,cy-4);g.lineTo(cx+f*5.6,cy-3.7);g.stroke()}
   if(tongue){g.fillStyle='#e8798f';g.beginPath();g.ellipse(cx+f*7.5,cy+4.6,3,1.8,0,0,7);g.fill()}
 }
 /* Animation smoothing: each player keeps a "shown" pose that chases the pose the game asks for, so poses ease in and out
@@ -2310,7 +2376,8 @@ function draw(){
   const nowT=performance.now();drawDt=clamp((nowT-lastDraw)/1000||.016,.001,.05);lastDraw=nowT;
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,W,H);
-  if(st&&st.shake>0)ctx.translate((Math.random()-.5)*6,(Math.random()-.5)*6);
+  const fp=ftShakeLevel(),amp=Math.max(st&&st.shake>0?6:0,fp*7.5);
+  if(amp>0)ctx.translate((Math.random()-.5)*amp,(Math.random()-.5)*amp);
   drawCourt();
   const swish=st&&st.phase==='goal'?Math.max(0,st.pt):0;
   hoops.forEach((h,i)=>drawHoop(h,st&&st.ball.shot&&st.ball.shot.scored&&st.ball.shot.by.atk===i?swish:0));
@@ -2397,11 +2464,48 @@ function portrait(ch){
 }
 const TEAM_LIST=TEAMS.filter(t=>CH.some(c=>c.team===t.id));
 const cardHTML=(c,key,i,on,badge,dis)=>`<button class="pick ${on?'on':''}" data-${key}="${i}" style="--c:${c.col}" type="button"${dis?' disabled':''}>${c.look?`<img class="ph" src="${portrait(c)}" alt="">`:`<span class="dot"></span>`}<b>${c.name}</b><small>${c.tag||c.label}</small>${c.up?`<span class="sw up">+ ${c.up}</span><span class="sw dn">− ${c.down}</span>`:''}${c.tk?`<span class="sw tk">★ ${c.tk.name}: ${c.tk.desc}</span>`:''}${badge?`<span class="badge">${badge}</span>`:''}</button>`;
-/* one team with arrows to switch it; pair=true lays its players out side by side */
-function teamBlock(key,side,sel,badge,dis,pair){
+/* the dice button: rolls a random player for that side */
+const diceBtn=(key,side)=>`<button class="arr dice${DICE.has(key+'|'+side)?' rolling':''}" data-dice="${key}|${side}" type="button" aria-label="Random player"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="3"/><circle cx="7" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="13" cy="13" r="1.1" fill="currentColor" stroke="none"/></svg></button>`;
+/* one team with arrows to switch it; pair=true lays its players out side by side; dice=true adds the dice to the header */
+function teamBlock(key,side,sel,badge,dis,pair,dice=true){
   const t=TEAM_LIST[flow.pg[key][side]];
   const cards=CH.map((c,i)=>[c,i]).filter(([c])=>c.team===t.id).map(([c,i])=>cardHTML(c,key,i,sel(i),badge?badge(i):'',dis?dis(i):false)).join('');
-  return `<div class="tcol"><div class="thead"><button class="arr" data-arrow="${key}|${side}|-1" type="button" aria-label="Previous team">&#8249;</button><h3 style="--c:${t.col}">${t.name}</h3><button class="arr" data-arrow="${key}|${side}|1" type="button" aria-label="Next team">&#8250;</button></div><div class="tlist${pair?' tpair':''}">${cards}</div></div>`;
+  return `<div class="tcol"><div class="thead"><button class="arr" data-arrow="${key}|${side}|-1" type="button" aria-label="Previous team">&#8249;</button><h3 style="--c:${t.col}">${t.name}</h3><button class="arr" data-arrow="${key}|${side}|1" type="button" aria-label="Next team">&#8250;</button>${dice?diceBtn(key,side):''}</div><div class="tlist${pair?' tpair':''}">${cards}</div></div>`;
+}
+/* dice: players and their teams skip past like a carousel, slowing down, then land on one at random.
+   Each side rolls on its own, so in two-player mode both can roll at once. Every step avoids the other side's
+   current player, so the two sides never end up with the same character. */
+const DICE=new Set();
+function rollDice(key,side){
+  const id=key+'|'+side;
+  if(DICE.has(id))return;
+  const own=key==='ch'?'ch':'ch2';
+  const otherField=key==='ch'?'ch2':'ch';
+  const otherVal=()=>(flow.mode==='tour'&&key==='ch')?-1:flow[otherField];
+  const pickOne=()=>{const v=otherVal();const pool=CH.map((_,i)=>i).filter(i=>i!==v);return pool[Math.floor(Math.random()*pool.length)]};
+  const savedOwn=flow[own],savedTeam=flow.pg[key][side];
+  const show=idx=>{
+    const team=TEAM_LIST.findIndex(tm=>tm.id===CH[idx].team);
+    if(team>=0)flow.pg[key][side]=team;
+    flow[own]=idx;
+    pickScreen();
+  };
+  const total=22+Math.floor(Math.random()*9);
+  let k=0,delay=40;
+  DICE.add(id);
+  const step=()=>{
+    /* the player left this screen mid-roll: put back this side's old pick and stop */
+    if(!scr.querySelector('[data-dice]')){flow[own]=savedOwn;flow.pg[key][side]=savedTeam;DICE.delete(id);return}
+    if(k<total){show(pickOne());k++;delay=Math.min(delay*1.1,260);setTimeout(step,delay)}
+    else if(k===total){show(pickOne());k++;setTimeout(step,600)}
+    else{
+      /* hold on the landing pick, then commit it (online sends it to the friend) */
+      DICE.delete(id);
+      if(key==='ch'&&net)netPickChanged();
+      pickScreen();
+    }
+  };
+  step();
 }
 function pickScreen(){
   if(flow.mode==='online'){
@@ -2415,7 +2519,7 @@ function pickScreen(){
     return;
   }
   if(flow.mode==='tour'){
-    showScreen(`<div class="card xl"><h2>Choose your player</h2><div class="tcols one">${teamBlock('ch','l',i=>flow.ch===i,null,null,true)}</div>
+    showScreen(`<div class="card xl"><div class="titlerow"><h2>Choose your player</h2>${diceBtn('ch','l')}</div><div class="tcols one">${teamBlock('ch','l',i=>flow.ch===i,null,null,true,false)}</div>
     <div class="row"><button class="btn" data-act="back" type="button">Back</button><button class="btn primary" data-act="go" type="button">Enter tournament</button></div></div>`);
     return;
   }
@@ -2423,7 +2527,7 @@ function pickScreen(){
   const two=flow.mode==='two'||flow.mode==='online',L=two?['Player 1','Player 2']:['You','CPU'];
   const diffBlock=two?'':`<h3 class="sect">CPU level</h3><div class="slots">${DIFF.map((d,i)=>`<button class="pick slot ${flow.diff===i?'on':''}" data-diff="${i}" style="--c:#ff9f68" type="button"><small>CPU level</small><b>${d.label}</b></button>`).join('')}</div>`;
   showScreen(`<div class="card xl"><h2>${two?'Set up the players':'Set up the match'}</h2>
-  <div class="tcols"><div class="side"><p class="sidelbl">${L[0]}</p>${teamBlock('ch','l',i=>flow.ch===i,null,i=>i===flow.ch2)}</div><div class="side"><p class="sidelbl">${L[1]}</p>${teamBlock('op','l',i=>flow.ch2===i,null,i=>i===flow.ch)}</div></div>${diffBlock}
+  <div class="tcols"><div class="side"><div class="sidehead">${diceBtn('ch','l')}<p class="sidelbl">${L[0]}</p></div>${teamBlock('ch','l',i=>flow.ch===i,null,i=>i===flow.ch2,false,false)}</div><div class="side"><div class="sidehead">${diceBtn('op','l')}<p class="sidelbl">${L[1]}</p></div>${teamBlock('op','l',i=>flow.ch2===i,null,i=>i===flow.ch,false,false)}</div></div>${diffBlock}
   <div class="row"><button class="btn" data-act="back" type="button">Back</button><button class="btn primary" data-act="go" type="button">Tip off</button></div></div>`);
 }
 
@@ -2590,6 +2694,8 @@ function launchMatch(){
 }
 scr.addEventListener('click',e=>{
   const t=e.target.closest('button');if(!t||t.disabled)return;
+  if(DICE.size&&!t.dataset.dice)return;
+  if(t.dataset.dice!==undefined){const [k,side]=t.dataset.dice.split('|');if(net&&k==='op')return;rollDice(k,side);return}
   if(t.dataset.arrow!==undefined){
     const [k,side,d]=t.dataset.arrow.split('|'),g=flow.pg[k],n=TEAM_LIST.length;
     if(net&&k==='op')return;
