@@ -206,14 +206,21 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .roomcode{font:700 46px/1 var(--display);letter-spacing:.28em;text-indent:.28em;text-align:center;color:#ffb347;margin:4px 0 8px}
 .roomin{font:700 30px/1 var(--display);letter-spacing:.3em;text-indent:.3em;text-align:center;text-transform:uppercase;padding:12px;border-radius:12px;border:1px solid var(--line);background:#0c1a28;color:var(--ink);width:100%;box-sizing:border-box}
 .netmsg{margin:6px 0;color:#9db2c4;font-size:14px;text-align:center;min-height:1em}
+.iconbtn{width:38px;height:38px;padding:0;display:inline-grid;place-items:center;border-radius:10px;border:1px solid var(--line);background:#0c1a28;color:var(--ink);cursor:pointer}
+.iconbtn svg{display:block}
+.setrow{display:flex;flex-direction:column;gap:8px;margin:6px 0 12px;text-align:left;color:var(--muted);font-size:14px}
+.setrow input[type=range]{width:100%;accent-color:var(--hi)}
+.setrow b{color:var(--ink)}
+.volgrid{display:grid;grid-template-columns:1fr 1fr;gap:0 18px}
+@media (max-width:520px){.volgrid{grid-template-columns:1fr}}
 </style>
 
 <main class="wrap" id="wrap">
   <header class="top">
     <h1>Hoop <span>Stars</span></h1>
     <div class="tools">
-      <button id="fs" type="button">Fullscreen</button>
-      <button id="mute" type="button">Sound on</button>
+      <button id="mute" class="iconbtn" type="button" aria-label="Sound on"></button>
+      <button id="fs" class="iconbtn" type="button" aria-label="Fullscreen"></button>
     </div>
   </header>
   <div class="stage">
@@ -535,6 +542,16 @@ const dpr=Math.min(2,window.devicePixelRatio||1);
 cv.width=W*dpr;cv.height=H*dpr;
 let st=null,flow={mode:'quick',ch:0,ch2:1,opp:1,round:0,slot:0,diff:1,tour:null,pg:{ch:{l:0,r:1},op:{l:2,r:3}}};
 let ac=null,muted=false;
+/* one master gain: every sound and the crowd go through it, so the volume slider scales all of them (0 is mute) */
+let master=null;const buses={},busVol={crowd:1,game:1,sfx:1};
+/* out(kind) returns the bus for a kind of sound: crowd, game (whistles, buzzer, swish) or sfx (everything else). Every bus feeds the master */
+function out(kind){
+  if(!master){master=ac.createGain();master.gain.value=vol;master.connect(ac.destination)}
+  const k=kind||'sfx';
+  if(!buses[k]){buses[k]=ac.createGain();buses[k].gain.value=busVol[k];buses[k].connect(master)}
+  return buses[k];
+}
+function setBusVol(k,v){busVol[k]=clamp(v,0,1);if(buses[k])buses[k].gain.value=busVol[k];const l=document.getElementById('lbl-'+k);if(l)l.textContent=Math.round(busVol[k]*100)+'%'}
 
 function sfx(k){
   if(muted)return;
@@ -546,7 +563,19 @@ function sfx(k){
     o.type=k==='block'?'sawtooth':'triangle';
     o.frequency.setValueAtTime(f[0],t);o.frequency.exponentialRampToValueAtTime(f[1],t+.12);
     g.gain.setValueAtTime(.05,t);g.gain.exponentialRampToValueAtTime(.001,t+.16);
-    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.17);
+    o.connect(g);g.connect(out());o.start(t);o.stop(t+.17);
+  }catch(e){}
+}
+/* end-of-period buzzer: a harsh two-tone horn that falls away */
+function sfxBuzzer(){
+  if(muted)return;
+  try{
+    ac=ac||new (window.AudioContext||window.webkitAudioContext)();
+    if(ac.state==='suspended')ac.resume();
+    const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
+    o.type='sawtooth';o.frequency.setValueAtTime(230,t);o.frequency.linearRampToValueAtTime(200,t+1.1);
+    g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.2,t+.03);g.gain.setValueAtTime(.2,t+1.0);g.gain.linearRampToValueAtTime(0,t+1.3);
+    o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+1.35);
   }catch(e){}
 }
 /* retro 8-bit blip for the startup flash: a quick rising arpeggio of square notes */
@@ -560,12 +589,12 @@ function sfxFlash(){
       const t=t0+i*.055,o=ac.createOscillator(),g=ac.createGain();
       o.type='square';o.frequency.setValueAtTime(f,t);
       g.gain.setValueAtTime(.12,t);g.gain.setValueAtTime(0,t+.05);
-      o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.06);
+      o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+.06);
     });
     const t=t0+.25,o=ac.createOscillator(),g=ac.createGain();
     o.type='square';o.frequency.setValueAtTime(1568,t);o.frequency.exponentialRampToValueAtTime(392,t+.22);
     g.gain.setValueAtTime(.1,t);g.gain.linearRampToValueAtTime(0,t+.24);
-    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.25);
+    o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+.25);
   }catch(e){}
 }
 /* referee whistle: a short two-tone shrill tweet */
@@ -577,7 +606,7 @@ function sfxWhistle(){
     const t=ac.currentTime,o=ac.createOscillator(),g=ac.createGain();
     o.type='sine';o.frequency.setValueAtTime(2700,t);o.frequency.linearRampToValueAtTime(3150,t+.14);o.frequency.linearRampToValueAtTime(2900,t+.3);
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.24,t+.02);g.gain.setValueAtTime(.24,t+.28);g.gain.linearRampToValueAtTime(0,t+.36);
-    o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+.38);
+    o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+.38);
   }catch(e){}
 }
 function sfxGreen(){
@@ -594,7 +623,7 @@ function sfxGreen(){
         o.type=type;o.frequency.setValueAtTime(f*mul,t);
         g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);
         g.gain.exponentialRampToValueAtTime(.001,t+len+.08);
-        o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+len+.1);
+        o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+len+.1);
       }
     }
   }catch(e){}
@@ -605,7 +634,7 @@ function pitchTone(t,f0,f1,dur,type,vol){
   const o=ac.createOscillator(),g=ac.createGain();
   o.type=type;o.frequency.setValueAtTime(f0,t);o.frequency.exponentialRampToValueAtTime(f1,t+dur);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
-  o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+dur+.02);
+  o.connect(g);g.connect(out());o.start(t);o.stop(t+dur+.02);
 }
 function noiseBurst(t,dur,type,f0,f1,Q,vol){
   const len=Math.floor(ac.sampleRate*dur),buf=ac.createBuffer(1,len,ac.sampleRate),d=buf.getChannelData(0);
@@ -614,7 +643,7 @@ function noiseBurst(t,dur,type,f0,f1,Q,vol){
   const fl=ac.createBiquadFilter();fl.type=type;fl.Q.value=Q;
   fl.frequency.setValueAtTime(f0,t);fl.frequency.exponentialRampToValueAtTime(f1,t+dur);
   const g=ac.createGain();g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(.001,t+dur);
-  src.connect(fl);fl.connect(g);g.connect(ac.destination);src.start(t);
+  src.connect(fl);fl.connect(g);g.connect(out());src.start(t);
 }
 /* a rim clank (louder and higher on a hard hit) or a backboard thud, scaled by the impact speed */
 function sfxImpact(kind,speed){
@@ -679,7 +708,7 @@ function crowdStart(){
     const src=ac.createBufferSource();src.buffer=buf;src.loop=true;
     const bp=ac.createBiquadFilter();bp.type='bandpass';bp.frequency.value=900;bp.Q.value=.5;
     const g=ac.createGain();g.gain.value=0;
-    src.connect(bp);bp.connect(g);g.connect(ac.destination);src.start();
+    src.connect(bp);bp.connect(g);g.connect(out('crowd'));src.start();
     crowd={buf,gain:g};
   }catch(e){}
 }
@@ -694,7 +723,7 @@ function cheer(level,dur){
     const g=ac.createGain();
     g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(.15*level,t+Math.min(.35,dur*.25));
     g.gain.exponentialRampToValueAtTime(.001,t+dur);
-    src.connect(f1);f1.connect(f2);f2.connect(g);g.connect(ac.destination);src.start(t);src.stop(t+dur+.05);
+    src.connect(f1);f1.connect(f2);f2.connect(g);g.connect(out('crowd'));src.start(t);src.stop(t+dur+.05);
   }catch(e){}
 }
 function crowdAudio(){
@@ -726,6 +755,7 @@ const GOLD='255,211,77',GREENP='61,220,132',WHITEP='255,255,255';
 /* a jersey color as "r,g,b", brightened if it is too dark to read as light */
 function jcol(hex){const c=hexRGB(hex),m=Math.max(c[0],c[1],c[2]);if(m<20)return '200,200,200';const k=m<150?150/m:1;return c.map(v=>Math.min(255,Math.round(v*k))).join(',')}
 function emit(o){
+  if(perf)return {};  /* performance mode: no particles */
   for(let k=0;k<PMAX;k++){
     const q=parts[pNext];pNext=(pNext+1)%PMAX;
     if(!q.on){q.on=true;q.t=0;q.kind='dot';q.g=0;q.drag=0;q.grow=0;q.lw=2;q.add=false;q.a0=1;q.shrink=false;Object.assign(q,o);return q}
@@ -809,6 +839,13 @@ const ANIMS={
   hesi:{d:.4,pose:s=>({dy:s<.5?5*sn(2*PI*s):0,lean:.1*sn(2*PI*s)})},
   bbdash:{d:.4,pose:s=>({a1:3.3-.8*sn(PI*s),lean:-.2*sn(PI*s)})},
   stepback:{d:.45,pose:s=>({lean:.28*sn(PI*s)})},
+  /* the step through: the ball stays low at the hip, the body leans into the rise, the lead foot reaches forward and the trailing leg tucks */
+  stepthru:{d:.5,pose:s=>{const k=sn(PI*s);return{a1:-.45,a2:.35,lean:.24*k+.04,legs:[12-8*s,-6-6*k,-12+6*s,-12]}}},
+  /* a step through released in the paint or early mid-range: an underhand flick up from the hip, like an underhand layup */
+  /* the flick: the ball stays low at the hip, the arm swings up through the release (about 0.16s in, when the ball leaves the hand) and follows through */
+  stepUnder:{d:.45,rel:.16,pose:s=>({a1:-.45+1.95*sm(Math.min(1,s/.36)),a2:.3,lean:.1*sn(PI*s),legs:[12,-8,-10,-12]})},
+  /* a step through released deep (mid-range or beyond the arc): the ball is held high */
+  stepHigh:{d:.45,pose:s=>({a1:2.2-.4*sm(s),a2:1.1,lean:.12*sn(PI*s)})},
   hopback:{d:.45,pose:s=>({dy:-9*sn(PI*s),lean:.15*sn(PI*s),legs:[4,-8,-4,-8]})},
   crossback:{d:.5,pose:s=>({lean:.25*sn(PI*s),a1:-.9+.5*sn(3*PI*s)})},
   harden:{d:.55,pose:s=>{const k=sn(PI*s);return{lean:.4*k,dy:3*k,legs:[20,0,-18,0],a2:.4}}},
@@ -869,7 +906,8 @@ const LAYUPS=[['layup',1],['fingerroll',1],['scoop',1],['floater',1],['teardrop'
 const STEPBACKS=[['stepback',50],['hopback',22],['crossback',18],['harden',6],['kyrie',4]];
 const DASHMOVES=[['spin',35],['crossover',35],['hesi',24],['bbdash',6]];
 const CLOSE_DUNKS=[['tomahawk',1],['twohand',1],['windmill',1],['reverse',1],['betweenlegs',1],['backscratch',1],['dunk180',1]];
-const LONG_DUNKS=[['jordan',1],['threesixty',1],['backboard',1]];
+/* the off-the-backboard dunk is weighted up (3 times the others) */
+const LONG_DUNKS=[['jordan',1],['threesixty',1],['backboard',3]];
 function getPose(p){
   if(p.fall)return fallPose(p);
   const d=p.dunking;
@@ -1041,7 +1079,10 @@ function startMatch(chIdx,ch2,cb,two,lvl){
 function stepPlayer(p,o,inp,dt,act){
   p.dashCd=Math.max(0,p.dashCd-dt);p.dash=Math.max(0,p.dash-dt);
   p.stun=Math.max(0,p.stun-dt);p.flash=Math.max(0,p.flash-dt);p.nobar=Math.max(0,(p.nobar||0)-dt);
-  if(p.cfx){p.cfx.t-=dt;if(p.cfx.t<=0)p.cfx=null}p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);p.fakeT=Math.max(0,p.fakeT-dt);p.fakeCd=Math.max(0,p.fakeCd-dt);
+  if(p.cfx){p.cfx.t-=dt;if(p.cfx.t<=0)p.cfx=null}p.protect=Math.max(0,p.protect-dt);p.step=Math.max(0,p.step-dt);p.stealCd=Math.max(0,p.stealCd-dt);const wasFake=p.fakeT>0;p.fakeT=Math.max(0,p.fakeT-dt);
+  /* an advanced pump fake ends: the player may take one step toward the rim. Without the ball the lock is released. */
+  if(wasFake&&p.fakeT<=0&&p.fakeLock)p.stepReady=true;
+  if(!p.has){p.fakeLock=false;p.stepReady=false;p.stepJump=0}p.fakeCd=Math.max(0,p.fakeCd-dt);
   if(p.pend)p.pend.t-=dt;
   if(p.anim){p.anim.t+=dt*(p.anim.slow||1);if(p.anim.t>=p.anim.d)p.anim=null}
   if(p.dunking){stepDunk(p,o,dt);return}
@@ -1054,17 +1095,24 @@ function stepPlayer(p,o,inp,dt,act){
   p.jp=!!inp.jump;
   if(inp.dash){inp.dash=0;if(can&&!ftLock&&!airBefore&&p.dashCd<=0)startDash(p,o,inp)}
   /* a pump fake needs no move key held: it can be done while slowing down, never on a straight run. It stops the player. */
-  if(inp.fake){inp.fake=0;if(can&&!ftLock&&p.has&&!airBefore&&!p.meter&&p.fakeCd<=0&&!inp.l&&!inp.r)startFake(p)}
+  if(inp.fake){inp.fake=0;if(can&&!ftLock&&p.has&&!airBefore&&!p.meter&&p.fakeCd<=0&&!p.fakeLock&&!inp.l&&!inp.r)startFake(p)}
   /* the takeover button does nothing in the air */
   if(inp.sup){inp.sup=0;if(can&&!ftLock&&p.to>=1&&!p.tkOn)startTakeover(p);else if(can&&!ftLock&&!p.tkOn)p.nobar=.25}
   if(inp.steal){inp.steal=0;if(can&&!ftLock&&p.stealCd<=0)trySteal(p,o)}
-  let dir=(can&&!ftLock)?(inp.r-inp.l):0;
+  /* locked after an advanced pump fake: the one allowed move is a single step toward the rim, pressed once */
+  if(can&&!ftLock&&p.fakeLock&&p.stepReady&&(inp.r-inp.l)*p.ad>0){p.stepReady=false;p.dash=.26;p.dashDir=p.ad;puffDust(p,p.ad);sfx('dash');msg('STEP THRU',p.x,p.y-120,'#7fe0d8');
+    /* the jump follows the dash: it starts as the dash ends, so the two run together */
+    p.fakeLock=false;p.stepJump=.22}
+  if(p.stepJump>0){p.stepJump-=dt;if(p.stepJump<=0&&p.has&&p.y>=FLOOR-1){p.stepJump=0;p.vy=-p.ch.jump;p.jumpX=p.x;p.meter={t:0,m:0,cp:contestOf(p,o)};p.stepShot=true;
+      /* the step through rises and drives forward into the finish (like the NBA step-through: a forward lean, the ball carried low) */
+      p.push={vx:p.ad*170,t:.45};p.anim={n:'stepthru',t:0,d:.5}}}
+  let dir=(can&&!ftLock&&!p.fakeLock)?(inp.r-inp.l):0;
   if(p.dash>0)dir=p.dashDir;
   const sp=p.ch.spd*T(p,'spd',1)*(p.dash>0?2.3:1);
   p.vx+=(dir*sp-p.vx)*Math.min(1,dt*(airBefore?4:9));
   if(p.has&&p.dash>0&&p.dashDir===-p.ad)p.face=p.ad;else if(dir)p.face=dir;else if(p.has)p.face=p.ad;
   if(can&&pressedJ&&!airBefore){
-    if(!ftLock){p.vy=-p.ch.jump;p.jumpX=p.x}p.fakeT=0;if(p.anim&&p.anim.n==='fake')p.anim=null;
+    if(!ftLock){p.vy=-p.ch.jump;p.jumpX=p.x}p.fakeT=0;p.fakeLock=false;p.stepReady=false;if(p.anim&&p.anim.n==='fake')p.anim=null;
     if(p.has)p.meter={t:0,m:0,cp:contestOf(p,o)};
     else if(o.fakeT>0&&Math.abs(o.x-p.x)<140&&p.dash<=0)p.bit=true;
   }
@@ -1073,7 +1121,7 @@ function stepPlayer(p,o,inp,dt,act){
   /* a heavily contested shooter is rushed: the jump (and so the meter) runs up to 18% faster */
   p.vy+=PG*dt*(p.meter&&p.meter.cp>.4?1+.18*(p.meter.cp-.4)/.6:1);p.y+=p.vy*dt;
   let landed=false;
-  if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;if(airBefore)landed=true}
+  if(p.y>=FLOOR){p.y=FLOOR;p.vy=0;if(airBefore){landed=true;p.stepShot=false}}
   p.run+=Math.abs(p.vx)*dt*.06;
   if(p.meter){
     if(!can||!p.has)p.meter=null;
@@ -1104,8 +1152,8 @@ function deadBall(p,o){
   st.phase='goal';st.pt=1.1;st.concede=o;
 }
 function startFake(p){
-  p.fakeId=(p.fakeId||0)+1;p.vx=0;
-  p.fakeT=.34;p.fakeCd=.8;p.anim={n:'fake',t:0,d:.34};
+  p.fakeId=(p.fakeId||0)+1;p.vx=0;p.fakeLock=advFake;p.stepReady=false;
+  p.fakeT=.26;p.fakeCd=.8;p.anim={n:'fake',t:0,d:.26};
   sfx('tick');
 }
 function startDash(p,o,inp){
@@ -1154,6 +1202,11 @@ function releaseShot(p,o){
     if(Math.random()<Math.min(1,(p.ch.dunk||1)*T(p,'dunk',1))){startDunk(p,h,pick(CLOSE_DUNKS),false);return}
     launch(p,{layup:true,u,sgn,anim:pick(LAYUPS)});return;
   }
+  /* a step through in the paint or early mid-range is an underhand flick: the ball leaves the hand as the arm swings up */
+  if(p.stepShot&&dist<=200){
+    /* a step through has the same long-dunk chance as a layup */
+    if(Math.random()<.05*(p.ch.dunk||1)*T(p,'dunk',1)){startDunk(p,h,pick(LONG_DUNKS),true);return}
+    launch(p,{layup:false,u,sgn,anim:'stepUnder'});return}
   if(layupNow(p)){
     if(Math.random()<.05*(p.ch.dunk||1)*T(p,'dunk',1)){startDunk(p,h,pick(LONG_DUNKS),true);return}
     launch(p,{layup:true,u,sgn,anim:pick(LAYUPS)});return;
@@ -1276,20 +1329,25 @@ function launch(p,c){
   let apexY=c.layup?aimY-25:Math.max(48,RIMY-118-dist*.02)+(Math.random()*12-6);
   /* a non-green release under heavy contest (over 40%) goes up higher to get over the defender. A green stays exact */
   if(!sure&&!c.layup)apexY=Math.max(20,apexY-lerpK(LIFT_K,cp));
+  /* the underhand step through is a high floater: it peaks well above the rim. The solve still aims it, so the meter and the tier still decide where it goes */
+  if(c.anim==='stepUnder')apexY=Math.max(30,RIMY-110);
   const av=arcVel(sx,sy,aimX,aimY,apexY);
   b.vx=av.vx+gauss()*S;
   b.vy=av.vy+gauss()*S*.6;
   b.state='air';b.owner=null;
   b.shot={by:p,pts,tier,outcome:c.lo,cover:1-t.cm,scored:false,t:0,brick:false,step:p.step>0,air:tier==='red',open:t.cm>=.95,sure,ft:!!(st.ft&&st.ft.p===p),layup:!!c.layup,hits:0,hitsMax:c.layup?1+Math.floor(Math.random()*3):0,lastHit:-9};b.noPick={p,t:.4};
   p.has=false;
-  if(!c.keepAnim){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d,slow:ANIMS[nm].slow||1};announce(p,nm)}
+  const kept=!!p.stepShot;p.stepShot=false;
+  /* a shot off a step through gets its own release by where it is taken from: paint or early mid-range (within 200px of the hoop) is an underhand flick, deeper is the ball held high */
+  if(kept&&!c.keepAnim){const nm=Math.abs(p.x-hoops[p.atk].x)>200?'stepHigh':'stepUnder';p.anim={n:nm,t:0,d:ANIMS[nm].d,slow:1}}
+  if(!c.keepAnim&&!kept){const nm=c.anim||'jumper';p.anim={n:nm,t:0,d:ANIMS[nm].d,slow:ANIMS[nm].slow||1};announce(p,nm)}
   msg(label,p.x,p.y-120,col);sfx('tick');
 }
 function startDunk(p,h,style,long){
   p.meter=null;p.face=p.ad;p.stat.fga++;
   const spec=DUNKS[style],o=st.p[1-p.idx],tx=h.x-p.ad*44;
   /* if a defender jumps in front of the dunker, this roll decides whether he gets posterized (see stepDunk) */
-  p.dunking={t:0,dur:long?spec.dur*1.55:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8,hang:true,slam:Math.random()<.5?'windmill':'twohand'};
+  p.dunking={t:0,dur:long?spec.dur*1.25:spec.dur,sx:p.x,sy:p.y,tx,ty:RIMY+86,style,long,poster:false,roll:Math.random()<.8,hang:true,slam:Math.random()<.5?'windmill':'twohand'};
   msg('DUNK',p.x,p.y-120,'#ffb347');
   announce(p,style,true);
 }
@@ -1335,7 +1393,9 @@ function stepDunk(p,o,dt){
   }
   if(d.poster)d.pk=Math.min(1,(d.pk||0)+dt*6);
   p.x=d.sx+(d.tx-d.sx)*e;
-  p.y=d.sy+(d.ty-d.sy)*e-Math.sin(Math.PI*s)*((d.long?60:14)+34*(d.pk||0));
+  /* a long dunk leaves the floor fast and slows as it reaches the top, like a real jump, instead of hanging there */
+  const ey=d.long?1-(1-s)*(1-s):e;
+  p.y=d.sy+(d.ty-d.sy)*ey-Math.sin(Math.PI*s)*((d.long?30:14)+34*(d.pk||0));
   p.vx=0;p.vy=0;
   if(s<1)return;
   p.dunking=null;p.has=false;p.afterDunk=true;
@@ -1619,8 +1679,8 @@ function stepBall(dt,live){
   /* scoring: the ball's path segment crosses the line between the rim circles going down, with its center between them */
   const crossing=b.vy>0&&py<=RIMY&&b.y>RIMY&&!s.noscore;
   /* a red never counts, even if a bounce happens to drop it through */
-  if(crossing&&Math.abs(b.x-hs.x)<RIMH+R){netImpulse(hs,b.x,b.vx,b.vy);sfxSwish(b.vy)}
-  if(crossing&&s.tier!=='red'&&Math.abs(b.x-hs.x)<RIMH-R)scoreShot(s);
+  if(crossing&&Math.abs(b.x-hs.x)<RIMH+R){if(!perf)netImpulse(hs,b.x,b.vx,b.vy);sfxSwish(b.vy)}
+  if(crossing&&s.tier!=='red'&&Math.abs(b.x-hs.x)<RIMH-R){scoreShot(s);if(perf)hs.pbV=130}  /* performance mode: a made basket bounces the net once */
   return false;
 }
 function updateBall(dt,live){
@@ -1767,7 +1827,7 @@ function checkEnd(){
   const [a,c]=st.p;
   if(st.time<=0){
     if(a.score!==c.score){finish();return true}
-    st.ot=true;st.time=OT;msg('OVERTIME',W/2,150,'#ffb347');
+    st.ot=true;st.time=OT;st.buzzed=false;st.otFade=1;msg('OVERTIME',W/2,150,'#ffb347');
     st.tipNext=true;st.phase='count';st.pt=2.4;setupTip();
     return true;
   }
@@ -1800,7 +1860,8 @@ function update(dt){
   for(const p of st.p)if(p.tkOn){p._fa=(p._fa||0)+dt*40;while(p._fa>=1){p._fa-=1;emitFlame(p)}}
   if(st.banner){st.banner.t+=dt;if(st.banner.t>1.7)st.banner=null}
   if(st.phase==='count'){
-    st.pt-=dt;updatePlayers(dt,false);updateBall(dt,false);
+    if(!(st.otFade>0))st.pt-=dt;  /* the tip-off countdown waits for the overtime fade to finish */
+    updatePlayers(dt,false);updateBall(dt,false);
     if(st.pt<=0){if(st.tipNext)startTip();else st.phase='play'}
     return;
   }
@@ -1808,6 +1869,7 @@ function update(dt){
   if(st.phase==='play'){
     if(st.ftWait>0)st.ftWait=Math.max(0,st.ftWait-dt);
     if(st.time>0&&!st.ft)st.time=Math.max(0,st.time-dt);
+    if(st.time<=0&&!st.buzzed){st.buzzed=true;sfxBuzzer()}
     for(const p of st.p)if(p.tkOn&&!st.ft){p.to-=dt/TK_DUR;if(p.to<=0){p.to=0;p.tkOn=false;msg('TAKEOVER OVER',p.x,p.y-130,'#9db2c4')}}
     updatePlayers(dt,true);updateBall(dt,true);
     const bl=st.ball,settled=bl.y>=FLOOR-R-.5&&Math.abs(bl.vy)<1&&Math.abs(bl.vx)<10;
@@ -1973,13 +2035,24 @@ const crowdRows=[[],[],[],[],[]];
   for(let r=0;r<5;r++){
     const s=.72+r*.13,y=172+r*29,gap=29*s;
     for(let x=-6+rnd()*gap;x<W+8;x+=gap*(.85+rnd()*.3)){
-      crowdRows[r].push({x,y:y+rnd()*4,s,col:cols[Math.floor(rnd()*cols.length)],skin:skin[Math.floor(rnd()*skin.length)],th:.12+rnd()*.88,ph:rnd()*6.28});
+      const pick=a=>a[Math.floor(rnd()*a.length)];
+      /* a look per fan: hair, hat, accessory and shirt pattern (each a weighted pick, so most fans have a little of each) */
+      const look={
+        hair:pick(['short','short','afro','long','bun','bald','short','none']),
+        hairCol:pick(['#1d1410','#1d1410','#3b2618','#6b4226','#c8a165','#e8d6a8','#b22222','#2e2e3a','#f5f5f5']),
+        hat:pick(['none','none','none','cap','cap','beanie','headband']),
+        hatCol:pick(['#e45b4f','#4a90d9','#f2c14e','#1d1410','#e8eef3','#7bc47f','#b07cd6']),
+        acc:pick(['none','none','none','none','chain','glasses','shades','headphones']),
+        shirt:pick(['solid','solid','solid','stripes','hoops'])
+      };
+      crowdRows[r].push({x,y:y+rnd()*4,s,col:cols[Math.floor(rnd()*cols.length)],skin:skin[Math.floor(rnd()*skin.length)],th:.12+rnd()*.88,ph:rnd()*6.28,look});
     }
   }
 })();
 /* camera flashes: short white pops in the stands */
 const crowdFlashes=[];
 function spawnFlash(n){
+  if(perf)return;
   for(let i=0;i<n;i++)crowdFlashes.push({x:20+Math.random()*(W-40),y:172+Math.random()*100,t:0,life:.12+Math.random()*.1});
   while(crowdFlashes.length>30)crowdFlashes.shift();
 }
@@ -2005,16 +2078,38 @@ function makeSigns(){
   }
 }
 function drawCrowd(){
-  const e=st?Math.max(st.excite,st.cheerLvl*.85):.2,t=performance.now()/1000;
+  /* performance mode: a plain crowd with no standing, bobbing, styles or signs moving */
+  const e=perf?0:(st?Math.max(st.excite,st.cheerLvl*.85):.2),t=performance.now()/1000;
   crowdRows.forEach((row,r)=>{
     const s=.72+r*.13;
     ctx.fillStyle='rgba(5,12,22,.45)';ctx.fillRect(0,172+r*29-12*s,W,30*s);
     for(const p of row){
       const stand=e>p.th;
-      const bob=stand?-Math.abs(Math.sin(t*(5+e*3)+p.ph))*3*e:Math.sin(t*1.3+p.ph)*.6;
+      const bob=perf?0:(stand?-Math.abs(Math.sin(t*(5+e*3)+p.ph))*3*e:Math.sin(t*1.3+p.ph)*.6);
       const by=p.y+bob,bh=(stand?26:16)*s;
+      const L=perf?null:p.look,hx=p.x,hy=by-bh-3.5*s,rh=5*s;
       ctx.fillStyle=p.col;ctx.beginPath();ctx.roundRect(p.x-6*s,by-bh+2,12*s,bh,3*s);ctx.fill();
-      ctx.fillStyle=p.skin;ctx.beginPath();ctx.arc(p.x,by-bh-3.5*s,5*s,0,7);ctx.fill();
+      if(L){
+        /* shirt pattern: a white stripe band or a little hoop-line across the chest */
+        if(L.shirt==='stripes'){ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(p.x-6*s,by-bh+10*s,12*s,1.6*s);ctx.fillRect(p.x-6*s,by-bh+15*s,12*s,1.6*s)}
+        else if(L.shirt==='hoops'){ctx.strokeStyle='rgba(255,255,255,.6)';ctx.lineWidth=1.2*s;ctx.beginPath();ctx.moveTo(p.x-4*s,by-bh+8*s);ctx.lineTo(p.x+4*s,by-bh+14*s);ctx.stroke()}
+        /* afro and long hair sit behind the head */
+        if(L.hair==='afro'){ctx.fillStyle=L.hairCol;ctx.beginPath();ctx.arc(hx,hy-1*s,rh+3.2*s,0,7);ctx.fill()}
+        else if(L.hair==='long'){ctx.fillStyle=L.hairCol;ctx.beginPath();ctx.roundRect(hx-rh-1*s,hy-1*s,2*rh+2*s,10*s,2*s);ctx.fill()}
+      }
+      ctx.fillStyle=p.skin;ctx.beginPath();ctx.arc(hx,hy,rh,0,7);ctx.fill();
+      if(L){
+        /* hair on top (short, bun), hats, headbands and face accessories */
+        if(L.hair==='short'||L.hair==='afro'||L.hair==='long'){ctx.fillStyle=L.hairCol;ctx.beginPath();ctx.arc(hx,hy-1*s,rh+.5*s,Math.PI,0);ctx.fill()}
+        else if(L.hair==='bun'){ctx.fillStyle=L.hairCol;ctx.beginPath();ctx.arc(hx,hy-rh-1.5*s,2.4*s,0,7);ctx.fill();ctx.beginPath();ctx.arc(hx,hy-1*s,rh+.5*s,Math.PI,0);ctx.fill()}
+        if(L.hat==='cap'){ctx.fillStyle=L.hatCol;ctx.beginPath();ctx.arc(hx,hy-.5*s,rh+.6*s,Math.PI,0);ctx.fill();ctx.fillRect(hx-rh-2.8*s,hy-1.2*s,rh*2+5.6*s,1.6*s)}
+        else if(L.hat==='beanie'){ctx.fillStyle=L.hatCol;ctx.beginPath();ctx.arc(hx,hy-.5*s,rh+.5*s,Math.PI,0);ctx.fill();ctx.fillRect(hx-rh-.4*s,hy-2.2*s,rh*2+.8*s,2.2*s)}
+        else if(L.hat==='headband'){ctx.strokeStyle=L.hatCol;ctx.lineWidth=1.8*s;ctx.beginPath();ctx.arc(hx,hy-.5*s,rh,Math.PI*1.05,Math.PI*1.95);ctx.stroke()}
+        if(L.acc==='glasses'){ctx.strokeStyle='#222';ctx.lineWidth=.8*s;ctx.beginPath();ctx.arc(hx-2*s,hy,1.6*s,0,7);ctx.arc(hx+2*s,hy,1.6*s,0,7);ctx.stroke()}
+        else if(L.acc==='shades'){ctx.fillStyle='#111';ctx.fillRect(hx-4*s,hy-.8*s,8*s,2.2*s)}
+        else if(L.acc==='headphones'){ctx.strokeStyle='#222';ctx.lineWidth=1.4*s;ctx.beginPath();ctx.arc(hx,hy-.5*s,rh+1.2*s,Math.PI,0);ctx.stroke();ctx.fillStyle='#222';ctx.fillRect(hx-rh-2*s,hy-.5*s,2*s,3.5*s);ctx.fillRect(hx+rh,hy-.5*s,2*s,3.5*s)}
+        if(L.acc==='chain'){ctx.strokeStyle='#f2c14e';ctx.lineWidth=.9*s;ctx.beginPath();ctx.arc(p.x,by-bh+5*s,4.2*s,.2*Math.PI,.8*Math.PI);ctx.stroke();ctx.fillStyle='#f2c14e';ctx.beginPath();ctx.arc(p.x,by-bh+9.2*s,1.1*s,0,7);ctx.fill()}
+      }
       if(stand&&e>.55){
         const w=Math.sin(t*7+p.ph)*4*s;
         ctx.strokeStyle=p.skin;ctx.lineWidth=2.2*s;ctx.lineCap='round';ctx.beginPath();
@@ -2029,8 +2124,8 @@ function drawCrowd(){
     const stand=clamp((e-.3)/.5,0,1);
     const raise=stand*10;
     const bob=Math.abs(Math.sin(t*(2.5+cheer*3)+ph))*3*cheer;
-    const y=172+sg.r*29-44+Math.sin(t*1.1+sg.x)*1.0-raise-bob;
-    const tilt=Math.sin(t*1.6+ph)*.04+cheer*Math.sin(t*5+ph)*.05;
+    const y=172+sg.r*29-44+(perf?0:Math.sin(t*1.1+sg.x)*1.0)-raise-bob;
+    const tilt=perf?0:Math.sin(t*1.6+ph)*.04+cheer*Math.sin(t*5+ph)*.05;
     ctx.save();ctx.translate(sg.x,y+9);ctx.rotate(tilt);
     ctx.fillStyle='#2a2f38';ctx.fillRect(-1.5,0,3,18);
     ctx.font='700 9px Inter, sans-serif';ctx.textAlign='center';
@@ -2165,15 +2260,24 @@ function netStep(h,dt){
 /* the ball passing through the scoring line pushes the net knots under it, scaled by its velocity, so fast swishes whip and soft rolls sway */
 function netImpulse(h,bx,vx,vy){
   if(!h.net)return;
+  /* performance mode: the net gives a light reaction, 30% of the normal force */
+  const k=perf?.3:1;
   for(const n of h.net.nodes){
     if(n.fixed)continue;
     const w=Math.max(0,1-Math.abs(n.x-bx)/24)*Math.max(0,1-(n.y-RIMY)/(NET_DEPTH+14));
     if(w<=0)continue;
-    n.vx+=vx*w*.28;n.vy+=vy*w*.42;
+    n.vx+=vx*w*.28*k;n.vy+=vy*w*.42*k;
   }
 }
 function hoopPhysics(dt){
   for(const h of hoops){
+    /* performance mode: the rim and backboard stay still, the net only moves lightly (see netImpulse) */
+    if(perf){
+      h.rOff=0;h.rV=0;h.bOff=0;h.bV=0;
+      /* the net is a single spring: a made basket pushes it down and it bounces back (no knot physics) */
+      h.pbV=(h.pbV||0)+(-260*(h.pb||0)-6*(h.pbV||0))*dt;h.pb=clamp((h.pb||0)+h.pbV*dt,-4,14);
+      continue;
+    }
     h.rV+=(-420*h.rOff-7*h.rV)*dt;h.rOff+=h.rV*dt;
     /* the backboard gives a little on impact, visually only */
     h.bV=(h.bV||0)+(-420*(h.bOff||0)-7*(h.bV||0))*dt;h.bOff=clamp((h.bOff||0)+h.bV*dt,-4,4);
@@ -2184,6 +2288,7 @@ function hoopPhysics(dt){
 /* a faint glow: the frame is shrunk, blurred and added back over itself so bright lights and the ball spill a little */
 const bloomCv=document.createElement('canvas');bloomCv.width=200;bloomCv.height=113;const bloomCtx=bloomCv.getContext('2d');
 function drawBloom(){
+  if(perf)return;
   bloomCtx.clearRect(0,0,bloomCv.width,bloomCv.height);
   bloomCtx.drawImage(cv,0,0,bloomCv.width,bloomCv.height);
   ctx.save();ctx.setTransform(1,0,0,1,0,0);
@@ -2206,15 +2311,29 @@ function drawHoop(h,swish){
   ctx.fillStyle=pg;ctx.fillRect(h.bx+h.s*16-4,RIMY-36,8,FLOOR-RIMY+36);
   /* backboard: glass with a white frame and the red shooter's square */
   const bx=(h.s===1?h.bx:h.bx-6)+(h.bOff||0);
-  ctx.fillStyle='rgba(190,225,250,.28)';ctx.fillRect(bx,RIMY-78,6,106);
-  ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.5;ctx.strokeRect(bx+.5,RIMY-77.5,5,105);
-  ctx.strokeStyle='#ef4f48';ctx.lineWidth=1.5;
-  ctx.strokeRect(bx+.5,RIMY-10.5,5,22);
+  if(perf){
+    /* performance mode: a plain panel with one outline */
+    ctx.fillStyle='rgba(190,225,250,.35)';ctx.fillRect(bx,RIMY-78,6,106);
+    ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1;ctx.strokeRect(bx+.5,RIMY-77.5,5,105);
+  }else{
+    ctx.fillStyle='rgba(190,225,250,.28)';ctx.fillRect(bx,RIMY-78,6,106);
+    ctx.strokeStyle='rgba(255,255,255,.9)';ctx.lineWidth=1.5;ctx.strokeRect(bx+.5,RIMY-77.5,5,105);
+    ctx.strokeStyle='#ef4f48';ctx.lineWidth=1.5;
+    ctx.strokeRect(bx+.5,RIMY-10.5,5,22);
+  }
   ctx.lineWidth=1;
   /* net: strands that sway when a shot goes in */
   const sway=swish>0?Math.sin(swish*30)*4*swish:0;
   /* net: draw the knot grid, row by row and column by column */
-  if(h.net){
+  if(perf){
+    const dy=h.pb||0,bot=RIMY+NET_DEPTH+dy;
+    ctx.strokeStyle='rgba(255,255,255,.75)';ctx.lineWidth=1.2;ctx.lineCap='round';
+    ctx.beginPath();
+    for(const f of [-1,-.5,0,.5,1]){ctx.moveTo(h.x+f*RIMH,RIMY);ctx.lineTo(h.x+f*RIMH*.55,bot)}
+    ctx.moveTo(h.x-RIMH*.8,RIMY+NET_DEPTH*.5+dy*.6);ctx.lineTo(h.x+RIMH*.8,RIMY+NET_DEPTH*.5+dy*.6);
+    ctx.moveTo(h.x-RIMH*.55,bot);ctx.lineTo(h.x+RIMH*.55,bot);
+    ctx.stroke();
+  }else if(h.net){
     ctx.strokeStyle='rgba(255,255,255,.7)';ctx.lineWidth=1.1;ctx.lineCap='round';
     ctx.beginPath();
     for(const row of h.net.rows){ctx.moveTo(row[0].x,row[0].y);for(const n of row)ctx.lineTo(n.x,n.y)}
@@ -2383,6 +2502,14 @@ function drawPlayer(p){
     ctx.beginPath();ctx.moveTo(x,ty);ctx.lineTo(x-6,ty-10);ctx.lineTo(x+6,ty-10);ctx.fill();
   }
   if(p.meter){if(st.ft&&p===st.ft.p)drawFTMeter(p);else drawMeter(p)}
+  /* advanced pump fake: the real shot meter is shown for the length of the fake, its marker rising as the fake runs out */
+  if(p.fakeLock&&p.fakeT>0&&!p.meter){
+    /* the normal shot meter: the marker rises and falls over the fake the way it does over a jump (top at the middle) */
+    /* the marker is where a real shot's marker would be if it were released when the fake ends: it climbs with the same jump speed and gravity */
+    const el=clamp(.26-p.fakeT,0,.26),J=p.ch.jump;
+    p.meter={t:0,m:clamp(1-Math.abs(-J+PG*el)/J,0,1),cp:contestOf(p,st.p[1-p.idx])};
+    drawMeter(p);p.meter=null;
+  }
 }
 function drawMeter(p){
   const o=st.p[1-p.idx],t=tiers(p,o,layupNow(p));
@@ -2407,7 +2534,7 @@ function drawMeter(p){
 }
 function drawBall(){
   const b=st.ball;
-  const glow=b.state==='held'&&b.owner&&b.owner.tkOn;
+  const glow=!perf&&b.state==='held'&&b.owner&&b.owner.tkOn;
   if(glow){
     const gr=ctx.createRadialGradient(b.x,b.y,2,b.x,b.y,26);
     gr.addColorStop(0,'rgba(255,190,80,.8)');gr.addColorStop(1,'rgba(255,120,40,0)');
@@ -2415,6 +2542,8 @@ function drawBall(){
   }
   /* a soft contact shadow on the floor when the ball is down there */
   if(b.y>FLOOR-R-6){ctx.fillStyle='rgba(0,0,0,.22)';ctx.beginPath();ctx.ellipse(b.x,FLOOR+4,R*.9,3.2,0,0,7);ctx.fill()}
+  /* performance mode: the basketball with its seams and outline, but no shading, highlight or glow */
+  if(perf){ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.x*.07);ctx.fillStyle='#ee7a2a';ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.fill();ctx.strokeStyle='#4a2008';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-R,0);ctx.lineTo(R,0);ctx.moveTo(0,-R);ctx.lineTo(0,R);ctx.stroke();ctx.beginPath();ctx.arc(0,0,R,0,7);ctx.stroke();ctx.restore();return}
   ctx.save();ctx.translate(b.x,b.y);ctx.rotate(b.x*.07);
   /* leather ball: shaded body, highlight, seams and grooves */
   const bg=ctx.createRadialGradient(-4,-4,1,0,0,R+1);
@@ -2445,14 +2574,18 @@ function drawHUD(){
   side(a,16,'left',(st.two?'P1 · ':'You · ')+a.ch.name);
   side(c,W-16,'right',(st.two?'P2 · ':'')+c.ch.name);
   ctx.textAlign='center';ctx.fillStyle='rgba(8,16,26,.7)';ctx.beginPath();ctx.roundRect(W/2-44,14,88,st.ot?58:38,8);ctx.fill();
-  ctx.fillStyle='#fff';ctx.font='700 30px Barlow Condensed, Arial Narrow, sans-serif';
+  ctx.fillStyle=st.time<=0?'#ff3b3b':'#fff';ctx.font='700 30px Barlow Condensed, Arial Narrow, sans-serif';
   const sec=Math.ceil(st.time);
   ctx.fillText(Math.floor(sec/60)+':'+String(sec%60).padStart(2,'0'),W/2,43);
   if(st.ot){ctx.font='700 13px Inter, sans-serif';ctx.fillStyle='#ffb347';ctx.fillText('OVERTIME',W/2,64)}
+  /* the overtime fade: the whole scene fades out and back in (see the canvas opacity in draw) */
+  if(st.otFade>0)st.otFade=Math.max(0,st.otFade-drawDt*.6);
 }
 let lastDraw=0;
 function draw(){
   const nowT=performance.now();drawDt=clamp((nowT-lastDraw)/1000||.016,.001,.05);lastDraw=nowT;
+  /* overtime fade: the canvas (the whole scene) goes transparent and comes back, so no black screen appears */
+  cv.style.opacity=(st&&st.otFade>0?1-st.otFade:1).toFixed(3);
   ctx.setTransform(dpr,0,0,dpr,0,0);
   ctx.clearRect(0,0,W,H);
   const fp=ftShakeLevel(),amp=Math.max(st&&st.shake>0?6:0,fp*7.5);
@@ -2480,7 +2613,7 @@ function draw(){
     ctx.fillText(m.text,clamp(m.x,70,W-70),m.y-m.t*36);
   }
   ctx.globalAlpha=1;
-  if(st.phase==='count'){
+  if(st.phase==='count'&&!(st.otFade>0)){
     ctx.fillStyle='#fff';ctx.font='700 90px Barlow Condensed, Arial Narrow, sans-serif';
     ctx.fillText(st.pt>1.1?String(Math.ceil(st.pt-1.1)):(st.tipNext?'TIP OFF':'GO'),W/2,250);
   }
@@ -2513,13 +2646,28 @@ function showScreen(html){scr.innerHTML=html;scr.hidden=false;document.getElemen
 function hideScreen(){scr.hidden=true;scr.innerHTML=''}
 /* whether shooting fouls and free throws happen in matches (on by default, toggled from the home screen) */
 let foulsOn=true;
+/* advanced pump fake (home screen toggle): the fake locks the player and allows one step toward the rim afterwards */
+let advFake=true;
+/* performance mode (off by default): no bloom, still nets and rims, a plain crowd, and no particles */
+let perf=false;
 function homeScreen(){
   if(net)netClose();
   st=null;setKeysHint();
   showScreen(`<div class="homewrap"><div class="card menu"><p class="eyebrow">1v1 street basketball</p><h2>Hoop Stars</h2>
   <button class="btn primary" data-act="single" type="button">Single player</button>
   <button class="btn primary" data-act="two" type="button">Two players</button>
-  <button class="btn" data-act="fouls" type="button">Fouls: ${foulsOn?'On':'Off'}</button></div><div class="studio"><svg class="kn2" viewBox="0 0 12 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="#e5484d"/><rect x="5" y="0" width="1" height="1" fill="#e5484d"/><rect x="6" y="0" width="1" height="1" fill="#e5484d"/><rect x="7" y="0" width="1" height="1" fill="#e5484d"/><rect x="3" y="1" width="1" height="1" fill="#e5484d"/><rect x="4" y="1" width="1" height="1" fill="#e5484d"/><rect x="5" y="1" width="1" height="1" fill="#e5484d"/><rect x="6" y="1" width="1" height="1" fill="#e5484d"/><rect x="7" y="1" width="1" height="1" fill="#e5484d"/><rect x="3" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="3" width="1" height="1" fill="#c9d3de"/><rect x="4" y="3" width="1" height="1" fill="#c9d3de"/><rect x="5" y="3" width="1" height="1" fill="#c9d3de"/><rect x="6" y="3" width="1" height="1" fill="#c9d3de"/><rect x="7" y="3" width="1" height="1" fill="#c9d3de"/><rect x="8" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="9" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="4" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="4" width="1" height="1" fill="#c9d3de"/><rect x="4" y="4" width="1" height="1" fill="#0b0f16"/><rect x="5" y="4" width="1" height="1" fill="#0b0f16"/><rect x="6" y="4" width="1" height="1" fill="#0b0f16"/><rect x="7" y="4" width="1" height="1" fill="#0b0f16"/><rect x="8" y="4" width="1" height="1" fill="#c9d3de"/><rect x="9" y="4" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="5" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="5" width="1" height="1" fill="#c9d3de"/><rect x="4" y="5" width="1" height="1" fill="#c9d3de"/><rect x="5" y="5" width="1" height="1" fill="#c9d3de"/><rect x="6" y="5" width="1" height="1" fill="#c9d3de"/><rect x="7" y="5" width="1" height="1" fill="#7d8a9c"/><rect x="8" y="5" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="7" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="7" width="1" height="1" fill="#c9d3de"/><rect x="4" y="7" width="1" height="1" fill="#c9d3de"/><rect x="5" y="7" width="1" height="1" fill="#c9d3de"/><rect x="6" y="7" width="1" height="1" fill="#c9d3de"/><rect x="7" y="7" width="1" height="1" fill="#c9d3de"/><rect x="8" y="7" width="1" height="1" fill="#c9d3de"/><rect x="9" y="7" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="8" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="8" width="1" height="1" fill="#c9d3de"/><rect x="3" y="8" width="1" height="1" fill="#c9d3de"/><rect x="4" y="8" width="1" height="1" fill="#c9d3de"/><rect x="5" y="8" width="1" height="1" fill="#f2b84b"/><rect x="6" y="8" width="1" height="1" fill="#c9d3de"/><rect x="7" y="8" width="1" height="1" fill="#c9d3de"/><rect x="8" y="8" width="1" height="1" fill="#c9d3de"/><rect x="9" y="8" width="1" height="1" fill="#c9d3de"/><rect x="10" y="8" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="9" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="9" width="1" height="1" fill="#c9d3de"/><rect x="3" y="9" width="1" height="1" fill="#c9d3de"/><rect x="4" y="9" width="1" height="1" fill="#c9d3de"/><rect x="5" y="9" width="1" height="1" fill="#c9d3de"/><rect x="6" y="9" width="1" height="1" fill="#c9d3de"/><rect x="7" y="9" width="1" height="1" fill="#c9d3de"/><rect x="8" y="9" width="1" height="1" fill="#c9d3de"/><rect x="9" y="9" width="1" height="1" fill="#c9d3de"/><rect x="10" y="9" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="10" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="10" width="1" height="1" fill="#c9d3de"/><rect x="3" y="10" width="1" height="1" fill="#c9d3de"/><rect x="4" y="10" width="1" height="1" fill="#7d8a9c"/><rect x="5" y="10" width="1" height="1" fill="#c9d3de"/><rect x="6" y="10" width="1" height="1" fill="#c9d3de"/><rect x="7" y="10" width="1" height="1" fill="#7d8a9c"/><rect x="8" y="10" width="1" height="1" fill="#c9d3de"/><rect x="9" y="10" width="1" height="1" fill="#c9d3de"/><rect x="10" y="10" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="8" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="9" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="10" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="12" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="12" width="1" height="1" fill="#c9d3de"/><rect x="5" y="12" width="1" height="1" fill="#c9d3de"/><rect x="6" y="12" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="13" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="13" width="1" height="1" fill="#c9d3de"/><rect x="5" y="13" width="1" height="1" fill="#c9d3de"/><rect x="6" y="13" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="15" width="1" height="1" fill="#1b1f2a"/></svg><span>PixelHoop Studios</span></div></div>`);
+  <button class="btn" data-act="settings" type="button">Settings</button></div><div class="studio"><svg class="kn2" viewBox="0 0 12 16" shape-rendering="crispEdges" aria-hidden="true"><rect x="4" y="0" width="1" height="1" fill="#e5484d"/><rect x="5" y="0" width="1" height="1" fill="#e5484d"/><rect x="6" y="0" width="1" height="1" fill="#e5484d"/><rect x="7" y="0" width="1" height="1" fill="#e5484d"/><rect x="3" y="1" width="1" height="1" fill="#e5484d"/><rect x="4" y="1" width="1" height="1" fill="#e5484d"/><rect x="5" y="1" width="1" height="1" fill="#e5484d"/><rect x="6" y="1" width="1" height="1" fill="#e5484d"/><rect x="7" y="1" width="1" height="1" fill="#e5484d"/><rect x="3" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="2" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="3" width="1" height="1" fill="#c9d3de"/><rect x="4" y="3" width="1" height="1" fill="#c9d3de"/><rect x="5" y="3" width="1" height="1" fill="#c9d3de"/><rect x="6" y="3" width="1" height="1" fill="#c9d3de"/><rect x="7" y="3" width="1" height="1" fill="#c9d3de"/><rect x="8" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="9" y="3" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="4" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="4" width="1" height="1" fill="#c9d3de"/><rect x="4" y="4" width="1" height="1" fill="#0b0f16"/><rect x="5" y="4" width="1" height="1" fill="#0b0f16"/><rect x="6" y="4" width="1" height="1" fill="#0b0f16"/><rect x="7" y="4" width="1" height="1" fill="#0b0f16"/><rect x="8" y="4" width="1" height="1" fill="#c9d3de"/><rect x="9" y="4" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="5" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="5" width="1" height="1" fill="#c9d3de"/><rect x="4" y="5" width="1" height="1" fill="#c9d3de"/><rect x="5" y="5" width="1" height="1" fill="#c9d3de"/><rect x="6" y="5" width="1" height="1" fill="#c9d3de"/><rect x="7" y="5" width="1" height="1" fill="#7d8a9c"/><rect x="8" y="5" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="6" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="7" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="7" width="1" height="1" fill="#c9d3de"/><rect x="4" y="7" width="1" height="1" fill="#c9d3de"/><rect x="5" y="7" width="1" height="1" fill="#c9d3de"/><rect x="6" y="7" width="1" height="1" fill="#c9d3de"/><rect x="7" y="7" width="1" height="1" fill="#c9d3de"/><rect x="8" y="7" width="1" height="1" fill="#c9d3de"/><rect x="9" y="7" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="8" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="8" width="1" height="1" fill="#c9d3de"/><rect x="3" y="8" width="1" height="1" fill="#c9d3de"/><rect x="4" y="8" width="1" height="1" fill="#c9d3de"/><rect x="5" y="8" width="1" height="1" fill="#f2b84b"/><rect x="6" y="8" width="1" height="1" fill="#c9d3de"/><rect x="7" y="8" width="1" height="1" fill="#c9d3de"/><rect x="8" y="8" width="1" height="1" fill="#c9d3de"/><rect x="9" y="8" width="1" height="1" fill="#c9d3de"/><rect x="10" y="8" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="9" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="9" width="1" height="1" fill="#c9d3de"/><rect x="3" y="9" width="1" height="1" fill="#c9d3de"/><rect x="4" y="9" width="1" height="1" fill="#c9d3de"/><rect x="5" y="9" width="1" height="1" fill="#c9d3de"/><rect x="6" y="9" width="1" height="1" fill="#c9d3de"/><rect x="7" y="9" width="1" height="1" fill="#c9d3de"/><rect x="8" y="9" width="1" height="1" fill="#c9d3de"/><rect x="9" y="9" width="1" height="1" fill="#c9d3de"/><rect x="10" y="9" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="10" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="10" width="1" height="1" fill="#c9d3de"/><rect x="3" y="10" width="1" height="1" fill="#c9d3de"/><rect x="4" y="10" width="1" height="1" fill="#7d8a9c"/><rect x="5" y="10" width="1" height="1" fill="#c9d3de"/><rect x="6" y="10" width="1" height="1" fill="#c9d3de"/><rect x="7" y="10" width="1" height="1" fill="#7d8a9c"/><rect x="8" y="10" width="1" height="1" fill="#c9d3de"/><rect x="9" y="10" width="1" height="1" fill="#c9d3de"/><rect x="10" y="10" width="1" height="1" fill="#1b1f2a"/><rect x="1" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="8" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="9" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="10" y="11" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="12" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="12" width="1" height="1" fill="#c9d3de"/><rect x="5" y="12" width="1" height="1" fill="#c9d3de"/><rect x="6" y="12" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="13" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="13" width="1" height="1" fill="#c9d3de"/><rect x="5" y="13" width="1" height="1" fill="#c9d3de"/><rect x="6" y="13" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="14" width="1" height="1" fill="#1b1f2a"/><rect x="2" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="3" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="4" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="5" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="6" y="15" width="1" height="1" fill="#1b1f2a"/><rect x="7" y="15" width="1" height="1" fill="#1b1f2a"/></svg><span>PixelHoop Studios</span></div></div>`);
+}
+function settingsScreen(){
+  const pct=Math.round(vol*100),bp=k=>Math.round(busVol[k]*100);
+  const sub=(k,id,label)=>`<label class="setrow sub"><span>${label} <b id="lbl-${k}">${bp(k)}%</b></span><input type="range" id="${id}" min="0" max="100" value="${bp(k)}" aria-label="${label}"></label>`;
+  showScreen(`<div class="card menu"><h2>Settings</h2>
+  <div class="volgrid"><label class="setrow"><span>Master volume <b id="volpct">${pct}%</b></span><input type="range" id="vol" min="0" max="100" value="${pct}" aria-label="Master volume"></label>
+  ${sub('crowd','volc','Crowd volume')}${sub('game','volg','Game volume')}${sub('sfx','vols','SFX volume')}</div>
+  <button class="btn" data-act="perf" type="button">Performance mode: ${perf?'On':'Off'}</button>
+  <button class="btn" data-act="advfake" type="button">Advanced pump fake: ${advFake?'On':'Off'}</button>
+  <button class="btn" data-act="fouls" type="button">Fouls: ${foulsOn?'On':'Off'}</button>
+  <button class="btn" data-act="home" type="button">Back</button></div>`);
 }
 function singleScreen(){
   showScreen(`<div class="card menu"><p class="eyebrow">Single player</p><h2>Choose a mode</h2>
@@ -2870,7 +3018,10 @@ scr.addEventListener('click',e=>{
   else if(act==='tour'){flow.mode='tour';pickScreen()}
   else if(act==='pick')pickScreen();
   else if(act==='home')homeScreen();
-  else if(act==='fouls'){foulsOn=!foulsOn;homeScreen()}
+  else if(act==='advfake'){advFake=!advFake;settingsScreen()}
+  else if(act==='perf'){perf=!perf;settingsScreen()}
+  else if(act==='fouls'){foulsOn=!foulsOn;settingsScreen()}
+  else if(act==='settings')settingsScreen()
   else if(act==='go'){if(flow.mode==='tour'){newTournament();bracketScreen()}else launchMatch()}
   else if(act==='bracket')bracketScreen();
   else if(act==='resume')resumeGame();
@@ -2978,7 +3129,7 @@ function fsOn(){return !!(document.fullscreenElement||document.webkitFullscreenE
 function fsSync(){
   const native=!!(document.fullscreenElement||document.webkitFullscreenElement);
   wrapEl.classList.toggle('fs',native||wrapEl.classList.contains('pfs'));
-  fsBtn.textContent=fsOn()?'Exit fullscreen':'Fullscreen';
+  fsBtn.innerHTML=fsOn()?FS_EXIT:FS_ENTER;fsBtn.setAttribute('aria-label',fsOn()?'Exit fullscreen':'Fullscreen');
 }
 function toggleFS(){
   if(fsOn()){
@@ -2998,7 +3149,26 @@ fsBtn.addEventListener('click',e=>{toggleFS();e.currentTarget.blur()});
 window.addEventListener('keydown',e=>{if(e.code==='KeyF'&&!e.repeat&&!e.ctrlKey&&!e.metaKey){toggleFS()}});
 document.addEventListener('keydown',e=>{if(e.code==='Escape'&&wrapEl.classList.contains('pfs')){wrapEl.classList.remove('pfs');fsSync()}});
 document.getElementById('pause').addEventListener('click',e=>{togglePause();e.currentTarget.blur()});
-document.getElementById('mute').addEventListener('click',e=>{muted=!muted;e.currentTarget.textContent=muted?'Sound off':'Sound on';e.currentTarget.blur()});
+/* volume: 0 is mute, and unmuting brings back the last level */
+const SPK_ON='<path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/><path d="M19 5a10 10 0 0 1 0 14"/>';
+const SPK_OFF='<path d="M11 5 6 9H2v6h4l5 4z"/><path d="m22 9-6 6M16 9l6 6"/>';
+const FS_ENTER='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg>';
+const FS_EXIT='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v5H4M15 4v5h5M9 20v-5H4M15 20v-5h5"/></svg>';
+let vol=1,lastVol=.8;
+function setVol(v){
+  vol=clamp(v,0,1);if(vol>0)lastVol=vol;muted=vol===0;
+  if(master)master.gain.value=vol;
+  const mb=document.getElementById('mute');
+  if(mb){mb.innerHTML='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+(muted?SPK_OFF:SPK_ON)+'</svg>';mb.setAttribute('aria-label',muted?'Sound off':'Sound on')}
+  const sl=document.getElementById('vol'),pc=document.getElementById('volpct'),pct=Math.round(vol*100);
+  if(sl&&+sl.value!==pct)sl.value=pct;
+  if(pc)pc.textContent=pct+'%';
+}
+document.getElementById('mute').addEventListener('click',e=>{setVol(muted?lastVol:0);e.currentTarget.blur()});
+document.addEventListener('input',e=>{const id=e.target&&e.target.id;if(!id)return;const v=e.target.value/100;
+  if(id==='vol')setVol(v);else if(id==='volc')setBusVol('crowd',v);else if(id==='volg')setBusVol('game',v);else if(id==='vols')setBusVol('sfx',v)});
+setVol(1);
+document.getElementById('fs').innerHTML=FS_ENTER;
 
 /* ---------- loop ---------- */
 let last=0;
