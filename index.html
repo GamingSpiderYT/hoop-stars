@@ -1,5 +1,6 @@
 <meta charset="utf-8">
 <title>Hoop Stars</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap">
@@ -92,6 +93,13 @@ canvas{display:block;width:100%;height:100%}
 .pad .grp{display:flex;gap:8px}
 .pad button{min-width:74px;height:64px;font-size:15px;user-select:none;-webkit-user-select:none;touch-action:none}
 .pad button.on{background:var(--hi);color:#06322e}
+.padset[hidden]{display:none!important}
+.padlbl{display:none;margin:0 0 4px;font:700 11px var(--body);letter-spacing:.14em;color:var(--muted)}
+.padset.two .padlbl{display:block}
+/* touch screens get the pads, not the keyboard hints */
+@media (pointer:coarse){.binds,.keys{display:none!important}}
+.pad .grp{flex:1 1 auto}
+.pad .grp button{flex:1 1 0;min-width:0;padding:0 4px;font-size:14px}
 @media (pointer:coarse),(max-width:640px){.pad{display:flex}}
 .keys{margin:0;color:var(--muted);font-size:13px}
 kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);border-bottom-width:2px;border-radius:5px;background:var(--panel);color:var(--ink)}
@@ -163,6 +171,25 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
 .match{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 8px 18px -14px #000}
 .match.mine{border-color:#ffb347;box-shadow:0 0 0 1px rgba(255,179,71,.35),0 10px 22px -12px #ffb347}
 .match.tbd{opacity:.45}
+.match.clk{cursor:pointer}.match.clk:hover{border-color:#ffd18a}
+.mm{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:60;padding:12px;overflow:auto}
+.mm:empty{display:none}.mmcard{max-width:540px;width:100%;max-height:96vh;overflow:auto}.mtabs{justify-content:center;flex-wrap:wrap;gap:6px}.mtabs .btn{padding:6px 12px;font-size:13px}
+.rbars{display:grid;grid-template-columns:1fr;gap:2px;width:100%;margin-top:4px}
+.rb{display:grid;grid-template-columns:34px 1fr 26px;align-items:center;gap:6px;font:600 10px var(--body);color:var(--muted);letter-spacing:.04em}
+.rb em{font-style:normal}
+.rb u{display:block;height:6px;border-radius:3px;background:rgba(255,255,255,.12);overflow:hidden}
+.rb s{display:block;height:100%;border-radius:3px}
+.rb .rv{text-align:right;font:700 11px var(--body);color:inherit;font-variant-numeric:tabular-nums}
+.rpanel{background:var(--panel2,rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;display:grid;gap:6px}
+.rhead{display:grid;grid-template-columns:1fr 1fr;font:700 16px var(--display);letter-spacing:.05em;text-transform:uppercase;text-align:center}
+.rhead span:first-child{text-align:left}.rhead span:last-child{text-align:right}
+.rcmp{display:grid;grid-template-columns:28px 1fr 128px 1fr 28px;align-items:center;gap:8px;font:600 12px var(--body)}
+.rcmp em{font-style:normal;text-align:center;color:var(--muted);font-size:10px;letter-spacing:.06em;text-transform:uppercase}
+.rcmp .rv{font-variant-numeric:tabular-nums;font-weight:700}
+.bar{height:9px;border-radius:5px;background:rgba(255,255,255,.12);overflow:hidden}
+.bar s{display:block;height:100%;border-radius:5px}
+.bar.l{direction:rtl}
+.rcmp .bar.l s{direction:ltr}
 .mrow{display:flex;align-items:center;gap:7px;padding:3px 6px;border-radius:8px;color:var(--muted)}
 .mrow+.mrow{margin-top:2px}
 .mrow .av{width:24px;height:24px;border-radius:50%;object-fit:cover;flex:none;background:var(--c);box-shadow:0 0 0 2px var(--c)}
@@ -197,10 +224,14 @@ kbd{font:600 12px var(--body);padding:1px 6px;border:1px solid var(--line);borde
     <div id="flash"></div>
     <div class="binds" id="binds" aria-hidden="true"></div>
   </div>
-  <div class="pad" id="pad">
+  <div class="padset" id="padset1" hidden><p class="padlbl">P1</p><div class="pad" id="pad" data-p="0">
     <div class="grp"><button type="button" data-k="l">Left</button><button type="button" data-k="r">Right</button><button type="button" data-k="dash">Dash</button></div>
     <div class="grp"><button type="button" data-k="jump">Jump / shoot</button><button type="button" data-k="fake">Fake</button><button type="button" data-k="steal">Steal</button><button type="button" data-k="sup">Takeover</button></div>
-  </div>
+  </div></div>
+  <div class="padset" id="padset2" hidden><p class="padlbl">P2</p><div class="pad" id="pad2" data-p="1">
+    <div class="grp"><button type="button" data-k="l">Left</button><button type="button" data-k="r">Right</button><button type="button" data-k="dash">Dash</button></div>
+    <div class="grp"><button type="button" data-k="jump">Jump / shoot</button><button type="button" data-k="fake">Fake</button><button type="button" data-k="steal">Steal</button><button type="button" data-k="sup">Takeover</button></div>
+  </div></div>
   <p class="keys" id="keys"></p>
 </main>
 <script>
@@ -260,136 +291,136 @@ const TEAMS=[
 ];
 /* deep: three-point window, fin: layup window, dunk: dunk frequency, stl: steal success, dcd: dash cooldown, blkW: seconds a shot can be blocked, sec: ball security */
 const CH=[
-  {name:'Michael Jordan',look:'jordan',team:'GOAT',number:'23',col:'#ff4d5e',skin:'#8d5a3b',skin2:'#74482f',spd:190,jump:600,zone:1.1,reach:36,deep:.85,fin:1.15,dunk:1.3,stl:.8,dcd:1.3,blkW:.3,sec:0,
+  {name:'Michael Jordan',R:{pdef:90,idef:74,stl:98,sec:83,str:96,spd:78,ath:98,three:25,mid:98,fin:98,dunk:98,ft:84,blk:59,reb:46},look:'jordan',team:'GOAT',number:'23',col:'#ff4d5e',skin:'#8d5a3b',skin2:'#74482f',spd:190,jump:600,zone:1.1,reach:36,deep:.85,fin:1.15,dunk:1.3,stl:.8,dcd:1.3,blkW:.3,sec:0,
     tk:{name:'FLIGHT MODE',desc:'quicker, deadly mid-range, more dunks, grabbing hands',spd:1.06,mid:1.3,dunk:1.4,stl:.15,dcd:.6,fin:1.1},tkm:{stl:1.4,two:1.2,dunk:1.2,blk:1},
     tag:'Shooting guard \u00b7 the scorer',up:'Explosive leaper, deadly fadeaways, elite hands for steals, loves to dunk',down:'Only average from three'},
-  {name:'LeBron James',look:'lebron',team:'GOAT',number:'23',col:'#fdb927',skin:'#7b4b33',skin2:'#633b27',spd:166,jump:565,zone:1,reach:46,deep:.8,fin:1.25,dunk:1.2,stl:.7,dcd:1.5,blkW:.45,sec:.2,
+  {name:'LeBron James',R:{pdef:96,idef:94,stl:97,sec:75,str:96,spd:88,ath:97,three:62,mid:73,fin:97,dunk:96,ft:66,blk:60,reb:80},look:'lebron',team:'GOAT',number:'23',col:'#fdb927',skin:'#7b4b33',skin2:'#633b27',spd:166,jump:565,zone:1,reach:46,deep:.8,fin:1.25,dunk:1.2,stl:.7,dcd:1.5,blkW:.45,sec:.2,
     tk:{name:'KING OF THE PAINT',desc:'bulldozes inside, lockdown blocks, almost impossible to strip',spd:1.08,fin:1.3,dunk:1.4,blk:.25,reach:14,sec:.3,mom:.5},tkm:{blk:1.5,dunk:1.3,two:1.1,stl:.9},
     tag:'Forward \u00b7 the powerhouse',up:'Finishes through contact, chase-down blocks, hard to strip',down:'Slower, and streaky from deep'},
-  {name:'Stephen Curry',look:'curry',team:'Warriors',number:'30',col:'#5a9bff',skin:'#b07a54',skin2:'#8f6141',spd:182,jump:545,zone:1.25,reach:29,deep:1.5,fin:.85,dunk:.2,stl:.62,dcd:1,blkW:.22,sec:0,
+  {name:'Stephen Curry',R:{pdef:69,idef:18,stl:68,sec:59,str:33,spd:87,ath:34,three:97,mid:66,fin:63,dunk:12,ft:95,blk:33,reb:21},look:'curry',team:'Warriors',number:'30',col:'#5a9bff',skin:'#b07a54',skin2:'#8f6141',spd:182,jump:545,zone:1.25,reach:29,deep:1.5,fin:.85,dunk:.2,stl:.62,dcd:1,blkW:.22,sec:0,
     tk:{name:'HEAT CHECK',desc:'bigger deep window, shoots through contests, fast dash',deep:1.2,mid:1.15,cont:.5,mom:0,dcd:.6,spd:1.04},tkm:{three:1.4,green:1.6,blk:.5,stl:.8,dunk:.5},
     tag:'Point guard \u00b7 the shooter',up:'Greatest shooter ever: huge deep window, quick handles, fast dash',down:'Small at the rim: weaker layups, rarely dunks, poor blocker'},
-  {name:'Yaxel Lendeborg',look:'yaxel',team:'Warriors',number:'23',col:'#ffc72c',skin:'#c08d63',skin2:'#a3724c',spd:176,jump:570,zone:1.05,reach:40,deep:1.05,fin:1.1,dunk:1,stl:.75,dcd:1.3,blkW:.35,sec:.05,
+  {name:'Yaxel Lendeborg',R:{pdef:43,idef:68,stl:54,sec:31,str:73,spd:35,ath:56,three:56,mid:29,fin:45,dunk:58,ft:68,blk:63,reb:67},look:'yaxel',team:'Warriors',number:'23',col:'#ffc72c',skin:'#c08d63',skin2:'#a3724c',spd:176,jump:570,zone:1.05,reach:40,deep:1.05,fin:1.1,dunk:1,stl:.75,dcd:1.3,blkW:.35,sec:.05,
     tk:{name:'STRETCH BIG',desc:'bigger shooting window, finishes through contact',deep:1.2,mid:1.2,fin:1.15,cont:.6,spd:1.04},tkm:{three:1.2,two:1.1,blk:1.1},
     tag:'Forward \u00b7 the versatile big',up:'Balanced scorer, solid from deep and at the rim, good hands',down:'No elite trait: nothing is a sure thing'},
-  {name:'Bam Adebayo',look:'bam',team:'Heat',number:'13',col:'#e03a3e',skin:'#8a5a3c',skin2:'#704730',spd:172,jump:570,zone:1.05,reach:44,deep:.75,fin:1.15,dunk:1.1,stl:.75,dcd:1.4,blkW:.42,sec:.1,
+  {name:'Bam Adebayo',R:{pdef:69,idef:93,stl:87,sec:77,str:97,spd:65,ath:70,three:34,mid:35,fin:46,dunk:79,ft:70,blk:55,reb:97},look:'bam',team:'Heat',number:'13',col:'#e03a3e',skin:'#8a5a3c',skin2:'#704730',spd:172,jump:570,zone:1.05,reach:44,deep:.75,fin:1.15,dunk:1.1,stl:.75,dcd:1.4,blkW:.42,sec:.1,
     tk:{name:'DEFENSIVE ANCHOR',desc:'lockdown blocks and steals, sturdy mid-range',blk:.25,stl:.15,mid:1.25,reach:10,spd:1.05},tkm:{blk:1.4,stl:1.2,two:1.1},
     tag:'Center \u00b7 the anchor',up:'Elite defender, sturdy mid-range, hard to move off the block',down:'Limited from deep'},
-  {name:'Giannis Antetokounmpo',look:'giannis',team:'Heat',number:'34',col:'#f9a01b',skin:'#7b4b33',skin2:'#633b27',spd:175,jump:580,zone:1,reach:48,deep:.5,fin:1.35,dunk:1.5,stl:.65,dcd:1.2,blkW:.4,sec:.15,
+  {name:'Giannis Antetokounmpo',R:{pdef:59,idef:98,stl:46,sec:75,str:98,spd:84,ath:98,three:9,mid:41,fin:90,dunk:98,ft:41,blk:86,reb:98},look:'giannis',team:'Heat',number:'34',col:'#f9a01b',skin:'#7b4b33',skin2:'#633b27',spd:175,jump:580,zone:1,reach:48,deep:.5,fin:1.35,dunk:1.5,stl:.65,dcd:1.2,blkW:.4,sec:.15,
     tk:{name:'GREEK FREAK',desc:'unstoppable strides to the rim, huge dunks, long arms',spd:1.08,fin:1.3,dunk:1.5,reach:12,dcd:.6},tkm:{dunk:1.4,poster:1.3,blk:1.2},
     tag:'Forward \u00b7 the freak',up:'Euro-step finisher, relentless dunker, huge wingspan',down:'Shaky from three'},
-  {name:'Donovan Mitchell',look:'mitchell',team:'Cavs',number:'45',col:'#c4163f',skin:'#9a6a48',skin2:'#7c5238',spd:188,jump:590,zone:1.1,reach:34,deep:1.05,fin:1.1,dunk:.9,stl:.7,dcd:1.2,blkW:.25,sec:0,
+  {name:'Donovan Mitchell',R:{pdef:86,idef:15,stl:92,sec:74,str:53,spd:78,ath:88,three:81,mid:80,fin:57,dunk:75,ft:87,blk:21,reb:25},look:'mitchell',team:'Cavs',number:'45',col:'#c4163f',skin:'#9a6a48',skin2:'#7c5238',spd:188,jump:590,zone:1.1,reach:34,deep:1.05,fin:1.1,dunk:.9,stl:.7,dcd:1.2,blkW:.25,sec:0,
     tk:{name:'SPIDA TIME',desc:'explosive first step, deadly pull-ups, fast dash',spd:1.06,mid:1.25,deep:1.15,dcd:.55,dunk:1.3},tkm:{three:1.2,two:1.2,dunk:1.2},
     tag:'Shooting guard \u00b7 the explosive scorer',up:'Explosive leaper, quick first step, deadly pull-up jumper',down:'Undersized on defense, average blocker'},
-  {name:'Evan Mobley',look:'mobley',team:'Cavs',number:'4',col:'#fdbb30',skin:'#8b5a3c',skin2:'#704730',spd:172,jump:575,zone:1,reach:46,deep:.6,fin:1.2,dunk:1.1,stl:.7,dcd:1.5,blkW:.45,sec:.1,
+  {name:'Evan Mobley',R:{pdef:46,idef:98,stl:24,sec:63,str:68,spd:35,ath:98,three:25,mid:44,fin:79,dunk:98,ft:41,blk:98,reb:95},look:'mobley',team:'Cavs',number:'4',col:'#fdbb30',skin:'#8b5a3c',skin2:'#704730',spd:172,jump:575,zone:1,reach:46,deep:.6,fin:1.2,dunk:1.1,stl:.7,dcd:1.5,blkW:.45,sec:.1,
     tk:{name:'LENGTH',desc:'wingspan walls off the paint, blocks everything',blk:.3,reach:16,fin:1.2,spd:1.05},tkm:{blk:1.5,stl:1.1,dunk:1.2},
     tag:'Forward \u00b7 the rim protector',up:'Long arms, chase-down blocks, smooth finisher',down:'Not a shooter from deep, slow dash'},
-  {name:'Kyrie Irving',look:'kyrie',team:'Mavs',number:'11',col:'#4aa3df',skin:'#a06b48',skin2:'#82553a',spd:186,jump:540,zone:1.2,reach:30,deep:1.25,fin:1.1,dunk:.15,stl:.65,dcd:.9,blkW:.2,sec:.35,
+  {name:'Kyrie Irving',R:{pdef:77,idef:15,stl:71,sec:73,str:21,spd:91,ath:29,three:81,mid:46,fin:53,dunk:11,ft:92,blk:32,reb:22},look:'kyrie',team:'Mavs',number:'11',col:'#4aa3df',skin:'#a06b48',skin2:'#82553a',spd:186,jump:540,zone:1.2,reach:30,deep:1.25,fin:1.1,dunk:.15,stl:.65,dcd:.9,blkW:.2,sec:.35,
     tk:{name:'BAG OPEN',desc:'ankle-breaking handles, deep window, shoots through contests',deep:1.2,mid:1.2,cont:.5,dcd:.5,sec:.4},tkm:{three:1.3,green:1.4,stl:1.1},
     tag:'Point guard \u00b7 the handler',up:'Elite handles, hard to strip, fast dash, tough shotmaker',down:'Rarely dunks, poor blocker'},
-  {name:'Cooper Flagg',look:'flagg',team:'Mavs',number:'32',col:'#b8c4ca',skin:'#e0b08a',skin2:'#c4936c',spd:178,jump:585,zone:1.05,reach:42,deep:.95,fin:1.15,dunk:1,stl:.85,dcd:1.3,blkW:.38,sec:.1,
+  {name:'Cooper Flagg',R:{pdef:70,idef:82,stl:70,sec:73,str:40,spd:50,ath:70,three:17,mid:31,fin:59,dunk:75,ft:78,blk:71,reb:57},look:'flagg',team:'Mavs',number:'32',col:'#b8c4ca',skin:'#e0b08a',skin2:'#c4936c',spd:178,jump:585,zone:1.05,reach:42,deep:.95,fin:1.15,dunk:1,stl:.85,dcd:1.3,blkW:.38,sec:.1,
     tk:{name:'TWO-WAY',desc:'steals, blocks and buckets, quicker everywhere',spd:1.06,stl:.15,blk:.2,fin:1.15,dunk:1.2,deep:1.1},tkm:{stl:1.3,blk:1.3,two:1.1},
     tag:'Forward \u00b7 the two-way star',up:'Quick hands, strong defender, can score at all three levels',down:'No one skill is elite yet'},
-  {name:'Kobe Bryant',look:'kobe',team:'Hall of Fame',number:'24',col:'#9b6bff',skin:'#8d5b3b',skin2:'#74482f',spd:188,jump:595,zone:1.15,reach:36,deep:1.05,fin:1.2,dunk:1.1,stl:.75,dcd:1.2,blkW:.3,sec:.1,
+  {name:'Kobe Bryant',R:{pdef:77,idef:28,stl:96,sec:76,str:60,spd:60,ath:88,three:53,mid:71,fin:64,dunk:80,ft:85,blk:19,reb:26},look:'kobe',team:'Hall of Fame',number:'24',col:'#9b6bff',skin:'#8d5b3b',skin2:'#74482f',spd:188,jump:595,zone:1.15,reach:36,deep:1.05,fin:1.2,dunk:1.1,stl:.75,dcd:1.2,blkW:.3,sec:.1,
     tk:{name:'MAMBA MENTALITY',desc:'deadly fadeaways, shoots through contests, more steals',mid:1.35,cont:.45,deep:1.1,stl:.1,dcd:.7,spd:1.04},tkm:{two:1.2,three:1.1,green:1.2,stl:1.1},
     tag:'Shooting guard \u00b7 the killer',up:'Fadeaway master, shoots through contests, relentless footwork',down:'Not a shot blocker, only average from three'},
-  {name:'Shaquille O\u2019Neal',look:'shaq',team:'Hall of Fame',number:'34',col:'#ffd34d',skin:'#6f4430',skin2:'#583522',spd:140,jump:520,zone:.95,reach:52,deep:.1,fin:1.5,dunk:1.8,stl:.55,dcd:1.8,blkW:.5,sec:.5,
+  {name:'Shaquille O\u2019Neal',R:{pdef:4,idef:98,stl:8,sec:48,str:98,spd:38,ath:98,three:17,mid:40,fin:98,dunk:98,ft:20,blk:98,reb:98},look:'shaq',team:'Hall of Fame',number:'34',col:'#ffd34d',skin:'#6f4430',skin2:'#583522',spd:140,jump:520,zone:.95,reach:52,deep:.1,fin:1.5,dunk:1.8,stl:.55,dcd:1.8,blkW:.5,sec:.5,
     tk:{name:'DIESEL',desc:'bulldozes the paint, huge dunks, monster blocks',fin:1.4,dunk:1.5,blk:.3,reach:16,sec:.3,mom:.4},tkm:{dunk:1.5,blk:1.4,poster:1.4,two:1.1},
     tag:'Center \u00b7 the unstoppable force',up:'Unstoppable at the rim, dunk machine, huge reach, can\u2019t be stripped',down:'Slow, no jumper, awful from deep'},
-  {name:'Luka Don\u010di\u0107',look:'luka',team:'Lakers',number:'77',col:'#8f6bd6',skin:'#e6bf9c',skin2:'#c9a07e',spd:168,jump:540,zone:1.2,reach:32,deep:1.3,fin:1,dunk:.2,stl:.55,dcd:1.5,blkW:.15,sec:.25,
+  {name:'Luka Don\u010di\u0107',R:{pdef:60,idef:84,stl:95,sec:73,str:88,spd:35,ath:37,three:89,mid:76,fin:92,dunk:24,ft:71,blk:37,reb:80},look:'luka',team:'Lakers',number:'77',col:'#8f6bd6',skin:'#e6bf9c',skin2:'#c9a07e',spd:168,jump:540,zone:1.2,reach:32,deep:1.3,fin:1,dunk:.2,stl:.55,dcd:1.5,blkW:.15,sec:.25,
     tk:{name:'LUKA MAGIC',desc:'huge deep window, shoots through contests, deadly mid-range',deep:1.25,mid:1.2,cont:.45,mom:0,dcd:.6},tkm:{three:1.3,green:1.3,two:1.1},
     tag:'Point guard \u00b7 the maestro',up:'Deep range, strong body shields the ball, great touch',down:'Slow, rarely dunks, weak defender'},
-  {name:'Austin Reaves',look:'reaves',team:'Lakers',number:'15',col:'#e0a458',skin:'#ecc4a0',skin2:'#d2a781',spd:180,jump:545,zone:1.1,reach:33,deep:1.1,fin:1.15,dunk:.35,stl:.75,dcd:1.2,blkW:.22,sec:.2,
+  {name:'Austin Reaves',R:{pdef:62,idef:30,stl:56,sec:51,str:59,spd:80,ath:63,three:61,mid:47,fin:82,dunk:19,ft:86,blk:29,reb:30},look:'reaves',team:'Lakers',number:'15',col:'#e0a458',skin:'#ecc4a0',skin2:'#d2a781',spd:180,jump:545,zone:1.1,reach:33,deep:1.1,fin:1.15,dunk:.35,stl:.75,dcd:1.2,blkW:.22,sec:.2,
     tk:{name:'ICE IN HIS VEINS',desc:'cold in the clutch, strong finisher, shoots through contests',deep:1.2,fin:1.2,cont:.5,mid:1.2,dcd:.7},tkm:{two:1.2,three:1.1,green:1.2},
     tag:'Guard \u00b7 the heady scorer',up:'Smart finisher through contact, solid shooter, good hands',down:'Rarely dunks, not a shot blocker'},
-  {name:'Shai Gilgeous-Alexander',look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
+  {name:'Shai Gilgeous-Alexander',R:{pdef:90,idef:74,stl:91,sec:97,str:59,spd:78,ath:78,three:60,mid:97,fin:76,dunk:28,ft:89,blk:68,reb:20},look:'shai',team:'Thunder',number:'2',col:'#3fa9f5',skin:'#8a5a3c',skin2:'#704730',spd:186,jump:565,zone:1.15,reach:34,deep:1.05,fin:1.25,dunk:.5,stl:.8,dcd:1.1,blkW:.25,sec:.3,
     tk:{name:'MVP MODE',desc:'unstoppable drives, deadly mid-range, steals, fast dash',spd:1.06,mid:1.3,fin:1.2,stl:.15,dcd:.5,cont:.6},tkm:{two:1.3,stl:1.2,green:1.2},
     tag:'Guard \u00b7 the slasher',up:'Elite mid-range and finishing, strong hands, hard to stop',down:'Not a dunker, average from three'},
-  {name:'Chet Holmgren',look:'chet',team:'Thunder',number:'7',col:'#ff6a3d',skin:'#a87650',skin2:'#8c6040',spd:164,jump:585,zone:1.1,reach:54,deep:1.15,fin:1.2,dunk:1.1,stl:.6,dcd:1.4,blkW:.5,sec:-.2,
+  {name:'Chet Holmgren',R:{pdef:49,idef:98,stl:21,sec:35,str:52,spd:35,ath:98,three:50,mid:69,fin:75,dunk:98,ft:75,blk:98,reb:97},look:'chet',team:'Thunder',number:'7',col:'#ff6a3d',skin:'#a87650',skin2:'#8c6040',spd:164,jump:585,zone:1.1,reach:54,deep:1.15,fin:1.2,dunk:1.1,stl:.6,dcd:1.4,blkW:.5,sec:-.2,
     tk:{name:'UNICORN',desc:'huge blocks and a deep window, hard to stop',deep:1.2,blk:.3,reach:16,fin:1.2,spd:1.05},tkm:{blk:1.6,three:1.2,dunk:1.2},
     tag:'Center \u00b7 the unicorn',up:'Seven-footer with range: elite rim protector who shoots threes',down:'Skinny: easy to strip and bump off the ball'},
-  {name:'Tyrese Maxey',look:'maxey',team:'76ers',number:'0',col:'#7fb8ff',skin:'#8d5a3b',skin2:'#74482f',spd:188,jump:540,zone:1.15,reach:30,deep:1.2,fin:1.05,dunk:.4,stl:.7,dcd:1,blkW:.2,sec:.3,
+  {name:'Tyrese Maxey',R:{pdef:72,idef:31,stl:76,sec:93,str:30,spd:89,ath:58,three:73,mid:51,fin:35,dunk:19,ft:90,blk:56,reb:14},look:'maxey',team:'76ers',number:'0',col:'#7fb8ff',skin:'#8d5a3b',skin2:'#74482f',spd:188,jump:540,zone:1.15,reach:30,deep:1.2,fin:1.05,dunk:.4,stl:.7,dcd:1,blkW:.2,sec:.3,
     tk:{name:'CLUTCH TIME',desc:'deep range, fast dash, shoots through contests',deep:1.2,spd:1.05,cont:.5,dcd:.6},tkm:{three:1.3,green:1.2},
     tag:'Guard \u00b7 the closer',up:'Quick first step, deep range, tough through contact',down:'Undersized at the rim',sc:.95,face:{hair:'#17110d',style:'short',beard:'stubble'}},
-  {name:'Jaylen Brown',look:'brown',team:'76ers',number:'7',col:'#ff7f9a',skin:'#6f4430',skin2:'#583522',spd:180,jump:575,zone:1.05,reach:40,deep:.95,fin:1.2,dunk:1.2,stl:.75,dcd:1.3,blkW:.33,sec:.15,
+  {name:'Jaylen Brown',R:{pdef:53,idef:51,stl:48,sec:63,str:74,spd:46,ath:55,three:53,mid:58,fin:71,dunk:33,ft:75,blk:28,reb:63},look:'brown',team:'76ers',number:'7',col:'#ff7f9a',skin:'#6f4430',skin2:'#583522',spd:180,jump:575,zone:1.05,reach:40,deep:.95,fin:1.2,dunk:1.2,stl:.75,dcd:1.3,blkW:.33,sec:.15,
     tk:{name:'ISO MODE',desc:'bullies to the rim, deadly mid-range, hard to strip',spd:1.05,mid:1.25,fin:1.2,sec:.3},tkm:{two:1.2,dunk:1.2},
     tag:'Wing \u00b7 the bully',up:'Powerful finisher, strong handle, hard to strip',down:'Inconsistent from deep',sc:1.03,face:{hair:'#17110d',style:'fade'}},
-  {name:'Jalen Duren',look:'duren',team:'Pistons',number:'9',col:'#ff6b57',skin:'#7b4b33',skin2:'#633b27',spd:150,jump:585,zone:.95,reach:52,deep:.1,fin:1.4,dunk:1.6,stl:.55,dcd:1.6,blkW:.5,sec:.4,
+  {name:'Jalen Duren',R:{pdef:41,idef:98,stl:45,sec:31,str:98,spd:35,ath:98,three:18,mid:29,fin:94,dunk:98,ft:66,blk:82,reb:98},look:'duren',team:'Pistons',number:'9',col:'#ff6b57',skin:'#7b4b33',skin2:'#633b27',spd:150,jump:585,zone:.95,reach:52,deep:.1,fin:1.4,dunk:1.6,stl:.55,dcd:1.6,blkW:.5,sec:.4,
     tk:{name:'ROLL MAN',desc:'lobs and putbacks, huge dunks, monster blocks',fin:1.3,dunk:1.5,blk:.3,reach:16},tkm:{dunk:1.4,blk:1.3},
     tag:'Center \u00b7 the rim runner',up:'Explosive finisher, huge dunks, rim protector',down:'Slow, no jumper',sc:1.1,face:{hair:'#17110d',style:'short'}},
-  {name:'Cade Cunningham',look:'cade',team:'Pistons',number:'2',col:'#3b6cff',skin:'#a06b48',skin2:'#82553a',spd:184,jump:555,zone:1.2,reach:34,deep:1.1,fin:1.05,dunk:.3,stl:.7,dcd:1.1,blkW:.2,sec:.3,
+  {name:'Cade Cunningham',R:{pdef:70,idef:77,stl:88,sec:77,str:63,spd:50,ath:70,three:53,mid:71,fin:39,dunk:46,ft:75,blk:70,reb:42},look:'cade',team:'Pistons',number:'2',col:'#3b6cff',skin:'#a06b48',skin2:'#82553a',spd:184,jump:555,zone:1.2,reach:34,deep:1.1,fin:1.05,dunk:.3,stl:.7,dcd:1.1,blkW:.2,sec:.3,
     tk:{name:'PLAYMAKER',desc:'quicker dash, deep range, tough to strip',deep:1.15,dcd:.7,sec:.3,spd:1.05},tkm:{three:1.2,green:1.2},
     tag:'Point guard \u00b7 the floor general',up:'Big guard size, smart handles, tough to strip',down:'Rarely dunks, average at the rim',sc:1.05,face:{hair:'#17110d',style:'short'}},
-  {name:'Anthony Davis',look:'ad',team:'Wizards',number:'3',col:'#8fb8ff',skin:'#8a5a3c',skin2:'#704730',spd:170,jump:575,zone:1,reach:52,deep:.25,fin:1.3,dunk:1.3,stl:.75,dcd:1.3,blkW:.5,sec:.15,
+  {name:'Anthony Davis',R:{pdef:65,idef:98,stl:72,sec:65,str:96,spd:57,ath:98,three:15,mid:34,fin:74,dunk:97,ft:69,blk:98,reb:98},look:'ad',team:'Wizards',number:'3',col:'#8fb8ff',skin:'#8a5a3c',skin2:'#704730',spd:170,jump:575,zone:1,reach:52,deep:.25,fin:1.3,dunk:1.3,stl:.75,dcd:1.3,blkW:.5,sec:.15,
     tk:{name:'UNGUARDABLE',desc:'rim blocks, feathery mid-range, dunks off the lob',fin:1.3,blk:.3,reach:14,mid:1.15},tkm:{blk:1.4,dunk:1.3},
     tag:'Big \u00b7 the two-way star',up:'Long wingspan, elite shot blocker, finishes everywhere',down:'Shaky from three',sc:1.06,face:{hair:'#17110d',style:'short'}},
-  {name:'Trae Young',look:'trae',team:'Wizards',number:'11',col:'#f04a5e',skin:'#c08a62',skin2:'#a06f4c',spd:180,jump:530,zone:1.15,reach:28,deep:1.45,fin:.9,dunk:.15,stl:.55,dcd:.9,blkW:.15,sec:.1,
+  {name:'Trae Young',R:{pdef:56,idef:3,stl:54,sec:55,str:14,spd:98,ath:39,three:65,mid:58,fin:26,dunk:9,ft:88,blk:12,reb:7},look:'trae',team:'Wizards',number:'11',col:'#f04a5e',skin:'#c08a62',skin2:'#a06f4c',spd:180,jump:530,zone:1.15,reach:28,deep:1.45,fin:.9,dunk:.15,stl:.55,dcd:.9,blkW:.15,sec:.1,
     tk:{name:'SHOOTER BALL',desc:'huge deep window, shoots through contests, quick dash',deep:1.25,cont:.5,dcd:.6,mid:1.15},tkm:{three:1.3,green:1.4,stl:.8},
     tag:'Point guard \u00b7 the deep shooter',up:'Elite range, deadly pull-ups, quick dash',down:'Small at the rim, weak defender',sc:.92,face:{hair:'#2a1b12',style:'fade'}},
-  {name:'Deni Avdija',look:'avdija',team:'Trail Blazers',number:'9',col:'#ff8a8a',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:570,zone:1.1,reach:42,deep:.9,fin:1.15,dunk:.8,stl:.85,dcd:1.3,blkW:.4,sec:.1,
+  {name:'Deni Avdija',R:{pdef:39,idef:76,stl:26,sec:48,str:97,spd:35,ath:42,three:40,mid:62,fin:60,dunk:38,ft:76,blk:48,reb:68},look:'avdija',team:'Trail Blazers',number:'9',col:'#ff8a8a',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:570,zone:1.1,reach:42,deep:.9,fin:1.15,dunk:.8,stl:.85,dcd:1.3,blkW:.4,sec:.1,
     tk:{name:'TWO-WAY',desc:'steals and blocks, quicker dash',spd:1.05,stl:.15,blk:.2},tkm:{stl:1.3,blk:1.3},
     tag:'Forward \u00b7 the versatile wing',up:'Quick hands, active defender, scores at every level',down:'No single skill is elite',sc:1.02,face:{hair:'#17110d',style:'short'}},
-  {name:'Damian Lillard',look:'lillard',team:'Trail Blazers',number:'0',col:'#ffc2b8',skin:'#8d5a3b',skin2:'#74482f',spd:182,jump:530,zone:1.2,reach:30,deep:1.5,fin:.95,dunk:.2,stl:.6,dcd:1,blkW:.15,sec:.2,
+  {name:'Damian Lillard',R:{pdef:67,idef:10,stl:59,sec:77,str:45,spd:89,ath:45,three:83,mid:77,fin:32,dunk:12,ft:95,blk:13,reb:21},look:'lillard',team:'Trail Blazers',number:'0',col:'#ffc2b8',skin:'#8d5a3b',skin2:'#74482f',spd:182,jump:530,zone:1.2,reach:30,deep:1.5,fin:.95,dunk:.2,stl:.6,dcd:1,blkW:.15,sec:.2,
     tk:{name:'DEEP BALL',desc:'deep range, shoots through contests, quick dash',deep:1.2,cont:.5,dcd:.6},tkm:{three:1.3,green:1.4},
     tag:'Guard \u00b7 the sniper',up:'Elite range, cold-blooded in clutch, quick handles',down:'Slow to the rim, weak defender',sc:.95,face:{hair:'#17110d',style:'fade',beard:'stubble'}},
-  {name:'Anthony Edwards',look:'edwards',team:'Timberwolves',number:'5',col:'#4fa3e0',skin:'#7b4b33',skin2:'#633b27',spd:186,jump:585,zone:1.15,reach:40,deep:1,fin:1.15,dunk:1.25,stl:.7,dcd:1.2,blkW:.3,sec:.1,
+  {name:'Anthony Edwards',R:{pdef:74,idef:44,stl:81,sec:52,str:72,spd:56,ath:92,three:89,mid:62,fin:66,dunk:82,ft:73,blk:60,reb:28},look:'edwards',team:'Timberwolves',number:'5',col:'#4fa3e0',skin:'#7b4b33',skin2:'#633b27',spd:186,jump:585,zone:1.15,reach:40,deep:1,fin:1.15,dunk:1.25,stl:.7,dcd:1.2,blkW:.3,sec:.1,
     tk:{name:'ANT MODE',desc:'explosive drives, huge dunks, fast dash',spd:1.06,dunk:1.3,fin:1.2},tkm:{dunk:1.3,two:1.1},
     tag:'Guard \u00b7 the explosive scorer',up:'Explosive leaper, drives through contact, lethal in transition',down:'Streaky from three',sc:1.02,face:{hair:'#17110d',style:'fade'}},
-  {name:'LaMelo Ball',look:'lamelo',team:'Timberwolves',number:'1',col:'#2ed1d6',skin:'#c08a62',skin2:'#a06f4c',spd:186,jump:540,zone:1.15,reach:33,deep:1.25,fin:1,dunk:.5,stl:.7,dcd:1.2,blkW:.2,sec:.15,
+  {name:'LaMelo Ball',R:{pdef:87,idef:42,stl:88,sec:78,str:5,spd:86,ath:38,three:96,mid:52,fin:14,dunk:23,ft:87,blk:20,reb:47},look:'lamelo',team:'Timberwolves',number:'1',col:'#2ed1d6',skin:'#c08a62',skin2:'#a06f4c',spd:186,jump:540,zone:1.15,reach:33,deep:1.25,fin:1,dunk:.5,stl:.7,dcd:1.2,blkW:.2,sec:.15,
     tk:{name:'LAMELO SHOW',desc:'deep range, quick dash, steals',deep:1.2,spd:1.05,stl:.15},tkm:{three:1.3,stl:1.1},
     tag:'Point guard \u00b7 the showman',up:'Long-range shooter, quick handles, passes in traffic',down:'Undersized defender, weak at the rim',sc:.95,face:{hair:'#17110d',style:'short'}},
-  {name:'Nikola Jokić',look:'jokic',team:'Nuggets',number:'15',col:'#fec524',skin:'#8d5b3b',skin2:'#74482f',spd:140,jump:500,zone:1.1,reach:46,deep:.6,fin:1.2,dunk:.4,stl:.45,dcd:1.5,blkW:.3,sec:.35,
+  {name:'Nikola Jokić',R:{pdef:62,idef:98,stl:90,sec:80,str:98,spd:38,ath:59,three:55,mid:96,fin:86,dunk:44,ft:79,blk:64,reb:98},look:'jokic',team:'Nuggets',number:'15',col:'#fec524',skin:'#8d5b3b',skin2:'#74482f',spd:140,jump:500,zone:1.1,reach:46,deep:.6,fin:1.2,dunk:.4,stl:.45,dcd:1.5,blkW:.3,sec:.35,
     tk:{name:'TRIPLE-DOUBLE',desc:'vision, soft touch, deadly mid-range',mid:1.2,sec:.2,fin:1.15},tkm:{two:1.2,green:1.2},
     tag:'Center \u00b7 the maestro',up:'Elite passer, soft touch, impossible to bump off the block',down:'Slow, limited athleticism',sc:1.1,face:{hair:'#17110d',style:'short',beard:'stubble'}},
-  {name:'Jamal Murray',look:'murray',team:'Nuggets',number:'27',col:'#ffe08a',skin:'#c8956a',skin2:'#ad7a55',spd:184,jump:555,zone:1.15,reach:32,deep:1.25,fin:1.05,dunk:.4,stl:.65,dcd:1.2,blkW:.2,sec:.25,
+  {name:'Jamal Murray',R:{pdef:30,idef:16,stl:27,sec:94,str:49,spd:68,ath:24,three:96,mid:74,fin:43,dunk:17,ft:90,blk:26,reb:19},look:'murray',team:'Nuggets',number:'27',col:'#ffe08a',skin:'#c8956a',skin2:'#ad7a55',spd:184,jump:555,zone:1.15,reach:32,deep:1.25,fin:1.05,dunk:.4,stl:.65,dcd:1.2,blkW:.2,sec:.25,
     tk:{name:'MURRAY TIME',desc:'deep window, shoots through contests, quick dash',deep:1.2,cont:.5,dcd:.7},tkm:{three:1.2,green:1.2},
     tag:'Guard \u00b7 the streak shooter',up:'Clutch shooter, quick first step, tough through contact',down:'Average on defense, inconsistent',sc:.97,face:{hair:'#17110d',style:'fade'}},
-  {name:'Victor Wembanyama',look:'wemby',team:'Spurs',number:'1',col:'#c4ced4',skin:'#8d6240',skin2:'#74502f',spd:164,jump:610,zone:1.1,reach:60,deep:.85,fin:1.1,dunk:1.1,stl:.5,dcd:1.3,blkW:.6,sec:-.1,
+  {name:'Victor Wembanyama',R:{pdef:75,idef:98,stl:76,sec:58,str:86,spd:57,ath:98,three:56,mid:37,fin:66,dunk:98,ft:80,blk:98,reb:98},look:'wemby',team:'Spurs',number:'1',col:'#c4ced4',skin:'#8d6240',skin2:'#74502f',spd:164,jump:610,zone:1.1,reach:60,deep:.85,fin:1.1,dunk:1.1,stl:.5,dcd:1.3,blkW:.6,sec:-.1,
     tk:{name:'UNICORN',desc:'huge blocks, long reach, shoots from outside',blk:.3,reach:16,mid:1.15},tkm:{blk:1.6,three:1.2},
     tag:'Center \u00b7 the unicorn',up:'Seven-footer with range, elite shot blocker',down:'Still thin, easy to bump off the ball',sc:1.15,face:{hair:'#17110d',style:'fade'}},
-  {name:'Stephon Castle',look:'castle',team:'Spurs',number:'5',col:'#8c96a0',skin:'#5c3a28',skin2:'#4a2d1e',spd:183,jump:540,zone:1.1,reach:36,deep:.8,fin:1.1,dunk:.6,stl:.85,dcd:1.2,blkW:.25,sec:.2,
+  {name:'Stephon Castle',R:{pdef:74,idef:38,stl:76,sec:48,str:83,spd:56,ath:80,three:35,mid:35,fin:54,dunk:67,ft:62,blk:22,reb:42},look:'castle',team:'Spurs',number:'5',col:'#8c96a0',skin:'#5c3a28',skin2:'#4a2d1e',spd:183,jump:540,zone:1.1,reach:36,deep:.8,fin:1.1,dunk:.6,stl:.85,dcd:1.2,blkW:.25,sec:.2,
     tk:{name:'LOCKDOWN',desc:'steals and quick hands, bulldozes to the rim',stl:.15,fin:1.15,sec:.3},tkm:{stl:1.3,two:1.1},
     tag:'Guard \u00b7 the lockdown',up:'Elite on-ball defender, strong finisher, quick hands',down:'Shaky shooter, not yet a threat from deep',sc:1.02,face:{hair:'#17110d',style:'short'}},
-  {name:'Amen Thompson',look:'amen',team:'Rockets',number:'1',col:'#ce1141',skin:'#7b4b33',skin2:'#633b27',spd:184,jump:575,zone:1.05,reach:38,deep:.75,fin:1.2,dunk:1.1,stl:.8,dcd:1.2,blkW:.3,sec:.1,
+  {name:'Amen Thompson',R:{pdef:83,idef:58,stl:87,sec:57,str:54,spd:69,ath:89,three:5,mid:12,fin:80,dunk:98,ft:70,blk:41,reb:61},look:'amen',team:'Rockets',number:'1',col:'#ce1141',skin:'#7b4b33',skin2:'#633b27',spd:184,jump:575,zone:1.05,reach:38,deep:.75,fin:1.2,dunk:1.1,stl:.8,dcd:1.2,blkW:.3,sec:.1,
     tk:{name:'LOCKDOWN HANDS',desc:'quicker, steals and rim pressure',spd:1.05,stl:0.1,dunk:1.1},tkm:{stl:1.3,dunk:1.1},
     tag:'Guard \u00b7 the disruptor',up:'Quick hands, athletic finisher, pesky defender',down:'Still developing as a shooter',face:{hair:'#17110d',style:'short'}},
-  {name:'Alperen \u015eeng\u00fcn',look:'sengun',team:'Rockets',number:'28',col:'#ff8a9a',skin:'#a87650',skin2:'#8c6040',spd:150,jump:540,zone:.95,reach:50,deep:.2,fin:1.3,dunk:1.1,stl:.5,dcd:1.4,blkW:.45,sec:.25,
+  {name:'Alperen \u015eeng\u00fcn',R:{pdef:60,idef:97,stl:76,sec:50,str:89,spd:35,ath:76,three:23,mid:28,fin:71,dunk:82,ft:55,blk:87,reb:89},look:'sengun',team:'Rockets',number:'28',col:'#ff8a9a',skin:'#a87650',skin2:'#8c6040',spd:150,jump:540,zone:.95,reach:50,deep:.2,fin:1.3,dunk:1.1,stl:.5,dcd:1.4,blkW:.45,sec:.25,
     tk:{name:'INSIDE HUB',desc:'passes and rebounds, strong at the rim',fin:1.2,reach:8},tkm:{blk:1.3,dunk:1.1},
     tag:'Center \u00b7 the passer',up:'Great hands and passing, tough inside',down:'Slow, and no threat from deep',face:{hair:'#17110d',style:'short'}},
-  {name:'Jalen Johnson',look:'jjohnson',team:'Hawks',number:'1',col:'#e03a3e',skin:'#c99a70',skin2:'#ab7f58',spd:176,jump:580,zone:1,reach:44,deep:.8,fin:1.2,dunk:1.3,stl:.7,dcd:1.3,blkW:.4,sec:.1,
+  {name:'Jalen Johnson',R:{pdef:62,idef:91,stl:70,sec:60,str:64,spd:39,ath:75,three:49,mid:56,fin:59,dunk:77,ft:73,blk:28,reb:97},look:'jjohnson',team:'Hawks',number:'1',col:'#e03a3e',skin:'#c99a70',skin2:'#ab7f58',spd:176,jump:580,zone:1,reach:44,deep:.8,fin:1.2,dunk:1.3,stl:.7,dcd:1.3,blkW:.4,sec:.1,
     tk:{name:'ALL-COURT',desc:'harder dunks, fast dash',dunk:1.3,spd:1.04},tkm:{dunk:1.3},
     tag:'Forward \u00b7 the all-rounder',up:'Explosive dunker, rebounds and handles the ball well',down:'Inconsistent jumper',face:{hair:'#17110d',style:'short'}},
-  {name:'Dyson Daniels',look:'ddaniels',team:'Hawks',number:'5',col:'#ff6b6b',skin:'#c08a62',skin2:'#a06f4c',spd:182,jump:550,zone:1.1,reach:40,deep:1,fin:1.1,dunk:.5,stl:.9,dcd:1.2,blkW:.25,sec:.2,
+  {name:'Dyson Daniels',R:{pdef:84,idef:58,stl:98,sec:78,str:17,spd:70,ath:57,three:6,mid:74,fin:45,dunk:62,ft:48,blk:29,reb:60},look:'ddaniels',team:'Hawks',number:'5',col:'#ff6b6b',skin:'#c08a62',skin2:'#a06f4c',spd:182,jump:550,zone:1.1,reach:40,deep:1,fin:1.1,dunk:.5,stl:.9,dcd:1.2,blkW:.25,sec:.2,
     tk:{name:'THIEF MODE',desc:'nearly impossible to strip, grabs steals',stl:0.15,sec:0.2},tkm:{stl:1.4},
     tag:'Guard \u00b7 the thief',up:'Top-tier steals, smart passer, fast dash',down:'Rarely dunks, average finisher',face:{hair:'#17110d',style:'short'}},
-  {name:'Jalen Brunson',look:'brunson',team:'Knicks',number:'11',col:'#f58426',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:530,zone:1.2,reach:30,deep:1.3,fin:1,dunk:.25,stl:.6,dcd:1,blkW:.15,sec:.3,
+  {name:'Jalen Brunson',R:{pdef:43,idef:5,stl:21,sec:94,str:24,spd:96,ath:13,three:70,mid:84,fin:48,dunk:9,ft:82,blk:10,reb:10},look:'brunson',team:'Knicks',number:'11',col:'#f58426',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:530,zone:1.2,reach:30,deep:1.3,fin:1,dunk:.25,stl:.6,dcd:1,blkW:.15,sec:.3,
     tk:{name:'CLUTCH',desc:'shoots through contests, deep range',deep:1.2,cont:0.4},tkm:{three:1.3,two:1.1},
     tag:'Guard \u00b7 the sharpshooter',up:'Clutch shooter, excellent ball security',down:'Limited above the rim',face:{hair:'#17110d',style:'short'}},
-  {name:'Karl-Anthony Towns',look:'kat',team:'Knicks',number:'32',col:'#2a7bd6',skin:'#7b4b33',skin2:'#633b27',spd:156,jump:555,zone:1,reach:50,deep:.9,fin:1.1,dunk:.9,stl:.45,dcd:1.3,blkW:.4,sec:.05,
+  {name:'Karl-Anthony Towns',R:{pdef:39,idef:98,stl:46,sec:31,str:97,spd:35,ath:81,three:51,mid:33,fin:49,dunk:85,ft:88,blk:47,reb:98},look:'kat',team:'Knicks',number:'32',col:'#2a7bd6',skin:'#7b4b33',skin2:'#633b27',spd:156,jump:555,zone:1,reach:50,deep:.9,fin:1.1,dunk:.9,stl:.45,dcd:1.3,blkW:.4,sec:.05,
     tk:{name:'STRETCH',desc:'long-range shots and blocks',deep:1.2,blk:0.2},tkm:{three:1.3,blk:1.2},
     tag:'Big \u00b7 the shooter',up:'Stretch big who shoots from deep, strong rebounder',down:'Less mobile, weaker on defense',face:{hair:'#17110d',style:'short'}},
-  {name:'Paolo Banchero',look:'banchero',team:'Magic',number:'5',col:'#0077c0',skin:'#b07a54',skin2:'#8f6141',spd:168,jump:570,zone:1,reach:44,deep:.75,fin:1.25,dunk:1.3,stl:.6,dcd:1.4,blkW:.35,sec:.1,
+  {name:'Paolo Banchero',R:{pdef:18,idef:85,stl:16,sec:54,str:98,spd:65,ath:49,three:25,mid:21,fin:53,dunk:67,ft:69,blk:41,reb:88},look:'banchero',team:'Magic',number:'5',col:'#0077c0',skin:'#b07a54',skin2:'#8f6141',spd:168,jump:570,zone:1,reach:44,deep:.75,fin:1.25,dunk:1.3,stl:.6,dcd:1.4,blkW:.35,sec:.1,
     tk:{name:'POWER MOVE',desc:'finishes through contact, bulldozes inside',fin:1.2,dunk:1.2},tkm:{dunk:1.3},
     tag:'Forward \u00b7 the powerhouse',up:'Strong finisher, creates his own shot',down:'Average range and slow on the break',face:{hair:'#17110d',style:'short'}},
-  {name:'Franz Wagner',look:'wagner',team:'Magic',number:'22',col:'#3d9be9',skin:'#b07a54',skin2:'#8f6141',spd:176,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.8,stl:.75,dcd:1.3,blkW:.3,sec:.15,
+  {name:'Franz Wagner',R:{pdef:60,idef:64,stl:72,sec:80,str:55,spd:35,ath:33,three:27,mid:56,fin:45,dunk:55,ft:84,blk:26,reb:52},look:'wagner',team:'Magic',number:'22',col:'#3d9be9',skin:'#b07a54',skin2:'#8f6141',spd:176,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.8,stl:.75,dcd:1.3,blkW:.3,sec:.15,
     tk:{name:'ON THE MOVE',desc:'quick dash and steals',dcd:0.7,stl:0.08},tkm:{stl:1.2,two:1.1},
     tag:'Forward \u00b7 the versatile',up:'Smart two-way player, reliable from mid-range',down:'Not an elite dunker',face:{hair:'#17110d',style:'short'}},
-  {name:'Scottie Barnes',look:'barnes',team:'Raptors',number:'4',col:'#ce1141',skin:'#6f4430',skin2:'#583522',spd:172,jump:560,zone:1,reach:44,deep:.6,fin:1.15,dunk:1,stl:.85,dcd:1.3,blkW:.35,sec:.1,
+  {name:'Scottie Barnes',R:{pdef:60,idef:98,stl:97,sec:53,str:74,spd:35,ath:88,three:23,mid:69,fin:53,dunk:89,ft:76,blk:98,reb:79},look:'barnes',team:'Raptors',number:'4',col:'#ce1141',skin:'#6f4430',skin2:'#583522',spd:172,jump:560,zone:1,reach:44,deep:.6,fin:1.15,dunk:1,stl:.85,dcd:1.3,blkW:.35,sec:.1,
     tk:{name:'SHUTDOWN',desc:'blocks and steals, bulldozes',stl:0.1,blk:0.2},tkm:{blk:1.4,stl:1.2},
     tag:'Forward \u00b7 the defender',up:'Elite defender, great handles for his size',down:'Weak outside shot',face:{hair:'#17110d',style:'short'}},
-  {name:'Kawhi Leonard',look:'kawhi',team:'Raptors',number:'2',col:'#a5acaf',skin:'#7b4b33',skin2:'#633b27',spd:170,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.6,stl:.8,dcd:1.2,blkW:.3,sec:.3,
+  {name:'Kawhi Leonard',R:{pdef:92,idef:59,stl:98,sec:80,str:74,spd:44,ath:88,three:78,mid:82,fin:81,dunk:48,ft:91,blk:31,reb:67},look:'kawhi',team:'Raptors',number:'2',col:'#a5acaf',skin:'#7b4b33',skin2:'#633b27',spd:170,jump:555,zone:1.05,reach:42,deep:.95,fin:1.1,dunk:.6,stl:.8,dcd:1.2,blkW:.3,sec:.3,
     tk:{name:'CLAMP',desc:'hard to strip, steals',sec:0.3,stl:0.1},tkm:{stl:1.3},
     tag:'Forward \u00b7 the cool hand',up:'Hard to guard, great ball security and steals',down:'Rarely dunks, slower in transition',face:{hair:'#17110d',style:'braids'}},
-  {name:'Michael Porter Jr.',look:'mpj',team:'Nets',number:'1',col:'#c0c5ca',skin:'#c08a62',skin2:'#a06f4c',spd:170,jump:540,zone:1.15,reach:36,deep:1.35,fin:.95,dunk:.6,stl:.5,dcd:1.2,blkW:.2,sec:.2,
+  {name:'Michael Porter Jr.',R:{pdef:41,idef:63,stl:58,sec:51,str:52,spd:35,ath:52,three:84,mid:30,fin:76,dunk:70,ft:85,blk:21,reb:82},look:'mpj',team:'Nets',number:'1',col:'#c0c5ca',skin:'#c08a62',skin2:'#a06f4c',spd:170,jump:540,zone:1.15,reach:36,deep:1.35,fin:.95,dunk:.6,stl:.5,dcd:1.2,blkW:.2,sec:.2,
     tk:{name:'DEEP RANGE',desc:'bigger three window, quick release',deep:1.3,cont:0.3},tkm:{three:1.4},
     tag:'Forward \u00b7 the sniper',up:'Deadly from three, quick release',down:'Weak defender, rarely blocks shots',face:{hair:'#17110d',style:'short'}},
-  {name:'Julius Randle',look:'randle',team:'Nets',number:'30',col:'#7d8389',skin:'#8d5a3b',skin2:'#74482f',spd:156,jump:540,zone:.95,reach:48,deep:.5,fin:1.35,dunk:1.2,stl:.55,dcd:1.3,blkW:.4,sec:.05,
+  {name:'Julius Randle',R:{pdef:46,idef:50,stl:61,sec:55,str:97,spd:35,ath:30,three:30,mid:42,fin:70,dunk:62,ft:74,blk:15,reb:62},look:'randle',team:'Nets',number:'30',col:'#7d8389',skin:'#8d5a3b',skin2:'#74482f',spd:156,jump:540,zone:.95,reach:48,deep:.5,fin:1.35,dunk:1.2,stl:.55,dcd:1.3,blkW:.4,sec:.05,
     tk:{name:'PAINT POWER',desc:'bulldozes inside, finishes through contact',fin:1.3,dunk:1.2},tkm:{dunk:1.2,two:1.1},
     tag:'Forward \u00b7 the bruiser',up:'Powerful finisher, strong inside',down:'Poor from deep, slow to recover',face:{hair:'#17110d',style:'short'}},
-  {name:'Jayson Tatum',look:'tatum',team:'Celtics',number:'0',col:'#007a33',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:565,zone:1.1,reach:42,deep:.9,fin:1.2,dunk:1.1,stl:.6,dcd:1.2,blkW:.3,sec:.2,
+  {name:'Jayson Tatum',R:{pdef:70,idef:86,stl:62,sec:76,str:43,spd:50,ath:65,three:75,mid:31,fin:66,dunk:63,ft:79,blk:30,reb:89},look:'tatum',team:'Celtics',number:'0',col:'#007a33',skin:'#c08a62',skin2:'#a06f4c',spd:178,jump:565,zone:1.1,reach:42,deep:.9,fin:1.2,dunk:1.1,stl:.6,dcd:1.2,blkW:.3,sec:.2,
     tk:{name:'ISO SCORER',desc:'unstoppable one-on-one, deadly fadeaways',deep:1.15,fin:1.1,cont:.4},tkm:{two:1.3,three:1.2},
     tag:'Forward \u00b7 the scorer',up:'Smooth scorer, great from mid-range and three, strong rebounder',down:'Can be streaky late in games',face:{hair:'#17110d',style:'short'}},
-  {name:'Paul George',look:'george',team:'Celtics',number:'13',col:'#1d6b3a',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:555,zone:1.1,reach:40,deep:1.2,fin:1.05,dunk:.7,stl:.85,dcd:1.2,blkW:.35,sec:.15,
+  {name:'Paul George',R:{pdef:60,idef:66,stl:98,sec:48,str:50,spd:35,ath:27,three:74,mid:57,fin:34,dunk:30,ft:77,blk:37,reb:50},look:'george',team:'Celtics',number:'13',col:'#1d6b3a',skin:'#8d5a3b',skin2:'#74482f',spd:176,jump:555,zone:1.1,reach:40,deep:1.2,fin:1.05,dunk:.7,stl:.85,dcd:1.2,blkW:.35,sec:.15,
     tk:{name:'LOCKDOWN WING',desc:'tough on defense, quick hands for steals',stl:.12,sec:.2},tkm:{stl:1.3,three:1.2},
     tag:'Wing \u00b7 the defender',up:'Excellent perimeter defender, reliable three-point shooter',down:'Less explosive finishing',face:{hair:'#17110d',style:'short'}}
 ];
@@ -455,6 +486,47 @@ CH.forEach(c=>{
    Arm length adds to the reach value, also compressed (2.2 reach per inch above the baseline). */
 const BODY={jordan:[78,4],lebron:[81,3],curry:[74,2],yaxel:[80,4],bam:[81,6],giannis:[83,4],mitchell:[73,4],mobley:[83,7],kyrie:[74,4],flagg:[81,7],kobe:[78,4],shaq:[85,5],luka:[79,4],reaves:[77,3],shai:[78,4],chet:[84,6],maxey:[74,2],brown:[78,4],duren:[81,6],cade:[77,4],ad:[82,8],trae:[73,1],avdija:[80,3],lillard:[74,2],edwards:[76,5],lamelo:[79,4],jokic:[83,6],murray:[76,3],wemby:[88,5],castle:[78,3]};
 CH.forEach(c=>{const b=BODY[c.look];if(!b)return;c.sc=Math.pow(b[0]/79,.75);c.reach=Math.round(36+2.2*(b[1]-2))});
+/* ---------- ratings (0-99) -> engine parameters ----------
+   R holds the 13 skill ratings computed from Basketball-Reference stats (see the ratings notes). Speed, strength and defense
+   are partly proxies because tracking data (sprint speed, rim defense) is not public. Every engine value below is a straight
+   line from a rating, spanning the same range the hand-tuned values used to cover. */
+const RLAB={pdef:'Perimeter defense',idef:'Interior defense',stl:'Stealing',sec:'Ball security',str:'Strength',spd:'Speed',ath:'Athleticism',three:'3-point shooting',mid:'Mid-range',fin:'Finishing',dunk:'Dunking',ft:'Free throws',blk:'Blocking',reb:'Rebounding'};
+const RABB={pdef:'PDEF',idef:'IDEF',stl:'STL',sec:'BALL',str:'STR',spd:'SPD',ath:'ATH',three:'3PT',mid:'MID',fin:'FIN',dunk:'DNK',ft:'FT',blk:'BLK',reb:'REB'};
+const RKEYS=Object.keys(RLAB);
+const rCol=r=>r>=75?'#4fd08a':r>=50?'#ffb347':r>=30?'#e8786a':'#8a5a5a';
+const rLevel=r=>r>=90?'Elite':r>=75?'Great':r>=60?'Good':r>=45?'Average':r>=30?'Weak':'Poor';
+CH.forEach(c=>{
+  const R=c.R;if(!R)return;
+  const u=k=>R[k]/99;
+  c.deep=.1+1.4*u('three');c.zone=.95+.3*u('mid');c.midK=.75+.5*u('mid');
+  c.fin=.85+.65*u('fin');c.dunk=.15+1.65*u('dunk');
+  c.jump=Math.round(525+75*u('ath'));
+  /* TAKEOVER from ratings: each boost scales with how far the skill sits above a 50 (average) rotation player, capped at the value shown.
+     Name and description stay hand-written; the numbers come from R. Multipliers: 1 = no change; additive keys: 0 = no change. */
+  if(c.tk){
+    const up=(r,max)=>1+(max-1)*Math.max(0,Math.min(1,(r-50)/49));   /* 1 at a 50 rating, up to max at 99 */
+    const pos=(r,max)=>max*Math.max(0,Math.min(1,(r-50)/49));          /* 0 at 50, up to max at 99 (additive) */
+    const t={deep:up(R.three,1.3),mid:up(R.mid,1.25),fin:up(R.fin,1.25),dunk:up(R.dunk,1.3),spd:up(R.spd,1.2),
+      dcd:1-pos(R.spd,.4),cont:1-pos(R.three,.4),stl:pos(R.stl,.15),blk:pos(R.blk,.25),sec:pos(R.sec,.3)};
+    /* the description is written from the numbers above, so it always matches what the takeover does */
+    const ph=[];
+    if(t.deep>1.05)ph.push('deeper three range');
+    if(t.mid>1.05)ph.push('stronger midrange');
+    if(t.fin>1.05)ph.push('finishes better at the rim');
+    if(t.dunk>1.05)ph.push('dunks more');
+    if(t.spd>1.05)ph.push('faster sprint');
+    if(t.dcd<.95)ph.push('quicker dash');
+    if(t.cont<.95)ph.push('shoots through contests');
+    if(t.stl>.02)ph.push('steals more');
+    if(t.blk>.02)ph.push('blocks more');
+    if(t.sec>.02)ph.push('hard to strip');
+    const desc=ph.length?ph.slice(0,4).join(', ').replace(/^./,x=>x.toUpperCase()):'slight edge';
+    c.tk=Object.assign({name:c.tk.name,desc},t);
+  }
+  c.spd=Math.round(140+50*u('spd'));c.dcd=+(1.8-.8*u('spd')).toFixed(2);
+  c.stl=.55+.3*(.6*u('stl')+.4*u('pdef'));c.blkW=.15+.35*(.6*u('blk')+.4*u('idef'));
+  c.sec=.7*u('sec');c.ftK=.6+.8*u('ft');c.strK=u('str');c.rebK=.9+.25*u('reb');
+});
 const DIFF=[{label:'Easy',lvl:.35},{label:'Normal',lvl:.58},{label:'Hard',lvl:.82}];
 const ROUNDS=['First Round','Conference Semis','Conference Finals','Finals'];
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -835,7 +907,7 @@ const TKV={two:.1,three:.16,green:.06,ftMade:.06,ftMiss:-.06,dunk:.12,poster:.08
 function T(p,k,d){return p.tkOn&&p.ch.tk&&p.ch.tk[k]!==undefined?p.ch.tk[k]:d}
 function tkGain(p,ev){
   if(p.tkOn||!st)return;
-  let v=TKV[ev];if(v>0)v*=(p.ch.tkm&&p.ch.tkm[ev])||1;
+  let v=TKV[ev];if(v>0)v*=.87*((p.ch.tkm&&p.ch.tkm[ev])||1);  /* positive gains are 13% slower, so a takeover is earned, not handed out */
   const was=p.to;p.to=clamp(p.to+v,0,1);
   if(p.to>=1&&was<1)msg('TAKEOVER READY',p.x,p.y-130,p.ch.col);
 }
@@ -874,6 +946,8 @@ function contestOf(p,o){
   const handY=o.y-(78+((o.ch.reach||40)+T(o,'reach',0))*.55);
   const vf=clamp(.55+(ballY-handY)/110,.3,1);          /* a hand well below the ball can't get up to it */
   let c=fd*dirF*vf;
+  /* the defender's rating: perimeter defense against jump shots, interior defense in the paint */
+  {const dr=o.ch.R;if(dr){const sd=Math.abs(p.x-hoops[p.atk].x);c*=.82+.36*(sd>230?dr.pdef:dr.idef)/99}}
   if(o.stun>0)c*=.4;
   /* a stepback gets you open (less coverage) but your momentum costs you accuracy */
   if(p.step>0)c*=.6;
@@ -883,7 +957,7 @@ function contestOf(p,o){
 function shotWin(p,o){
   const dist=Math.abs(p.x-hoops[p.atk].x);
   const dm=1+((p.ch.deep||1)*T(p,'deep',1)-1)*clamp((dist-200)/250,0,1);
-  const f=clamp(1.15-dist/520,.12,1)*dm*(dist>110&&dist<330?T(p,'mid',1):1);
+  const f=clamp(1.15-dist/520,.12,1)*dm*(dist>110&&dist<330?T(p,'mid',1)*(layupNow(p)?1:(p.ch.midK||1)):1);
   const cp=contestOf(p,o),cm=1-cp;
   const mom=layupNow(p)?1:1-.24*T(p,'mom',1)*clamp(Math.abs(p.vx)/(p.ch.spd*1.5),0,1);
   return {w:.22*p.ch.zone*f*mom,cm,cp,dist,dm};
@@ -1049,7 +1123,10 @@ function shoveMove(p,o){
   if(!(Math.abs(o.x-p.x)<60&&(o.x-p.x)*p.ad>0))return;
   if(p.to<.2){p.nobar=.25;return}
   p.to=clamp(p.to-.2,0,1);
-  o.push={vx:p.ad*300,t:.3};o.anim={n:'stepback',t:0,d:.35};
+  const dS=(p.ch.strK||0)-(o.ch.strK||0);  /* strength gap, -1..1 */
+  if(dS<-.25&&Math.random()<-dS*.8){p.push={vx:-p.ad*160,t:.25};msg('BOUNCED',p.x,p.y-110,'#ff8a80');sfx('steal');return}
+  const sf=clamp(1+.8*dS,.45,1);  /* strength scales a shove down to 0.45x, never above normal force */  /* a strong shove moves the defender further */
+  o.push={vx:p.ad*300*sf,t:.3};o.anim={n:'stepback',t:0,d:.35};
   p.protect=.5;p.anim={n:'shove',t:0,d:ANIMS.shove.d};
   msg('SHOVE',p.x,p.y-110,'#ffd166');sfx('steal');
 }
@@ -1263,7 +1340,8 @@ function stepDunk(p,o,dt){
   if(s<1)return;
   p.dunking=null;p.has=false;p.afterDunk=true;
   const b=st.ball,h=hoops[p.atk];
-  const rejectable=!d.hit&&o.y<FLOOR-40&&Math.abs(o.x-d.tx)<o.ch.reach+T(o,'reach',0)+34;
+  const strEdge=.6*Math.max(0,(p.ch.strK||0)-(o.ch.strK||0));  /* stronger dunker: the rejection can be powered through */
+  const rejectable=!d.hit&&o.y<FLOOR-40&&Math.abs(o.x-d.tx)<o.ch.reach+T(o,'reach',0)+34&&Math.random()>=strEdge;
   if(rejectable){
     b.x=p.x+p.face*14;b.y=p.y-70;
     blockBall(o,p,'REJECTED!',o.x+o.face*6,o.y-100);return;
@@ -1351,7 +1429,7 @@ function handPosR(p,noPose){
 const BLOCK_HAND_SCALE=1.375; /* 37.5%: inside the 35-40% range */
 function handBox(o,forBlock){
   const sc=o.ch.sc||1,arm=(o.ch.reach||40)+T(o,'reach',0);
-  if(!forBlock)return {x:o.x+o.face*(6+arm*.12),y:o.y-(70*sc+arm*.9),r:9+arm*.14,arm,pts:null};
+  if(!forBlock)return {x:o.x+o.face*(6+arm*.12),y:o.y-(70*sc+arm*.9),r:(9+arm*.14)*(o.ch.rebK||1),arm,pts:null};
   /* the block hitbox follows the rendered arm: the hand, and a point mid-forearm between the shoulder and the hand */
   const hp=handPos(o),shx=o.x,shy=o.y-58*sc,r=(9+arm*.14)*BLOCK_HAND_SCALE;
   const mid={x:(shx+hp.x)/2,y:(shy+hp.y)/2,r:r*.8};
@@ -1776,13 +1854,14 @@ function ftRelease(p,o){
   const d=Math.abs(ftBar(p.meter.t)-.5)*2;   /* 0 at the centre of the green, 1 at the far edge */
   const t=tiers(p,o,false);
   p.meter=null;
-  launch(p,{layup:false,u:t.g*d/.12,sgn:1,anim:'jumper'});
+  launch(p,{layup:false,u:t.g*d/(.12*(p.ch.ftK||1)),sgn:1,anim:'jumper'});
 }
 function drawFTMeter(p){
   const pos=ftBar(p.meter.t),x0=p.x-75,y=p.y-175,w=150;
   ctx.fillStyle='#b8322c';ctx.fillRect(x0,y,w,12);
-  ctx.fillStyle='#f2c92c';ctx.fillRect(x0+w*.35,y,w*.3,12);
-  ctx.fillStyle='#17803f';ctx.fillRect(x0+w*.44,y,w*.12,12);
+  const fk=p.ch.ftK||1;
+  ctx.fillStyle='#f2c92c';ctx.fillRect(x0+w*(.5-.15*fk),y,w*.3*fk,12);
+  ctx.fillStyle='#17803f';ctx.fillRect(x0+w*(.5-.06*fk),y,w*.12*fk,12);
   ctx.fillStyle='#fff';ctx.fillRect(x0+w*pos-2,y-4,4,20);
 }
 function startFT(){
@@ -2463,7 +2542,7 @@ function portrait(ch){
   return portraits[ch.look]=c.toDataURL();
 }
 const TEAM_LIST=TEAMS.filter(t=>CH.some(c=>c.team===t.id));
-const cardHTML=(c,key,i,on,badge,dis)=>`<button class="pick ${on?'on':''}" data-${key}="${i}" style="--c:${c.col}" type="button"${dis?' disabled':''}>${c.look?`<img class="ph" src="${portrait(c)}" alt="">`:`<span class="dot"></span>`}<b>${c.name}</b><small>${c.tag||c.label}</small>${c.up?`<span class="sw up">+ ${c.up}</span><span class="sw dn">− ${c.down}</span>`:''}${c.tk?`<span class="sw tk">★ ${c.tk.name}: ${c.tk.desc}</span>`:''}${badge?`<span class="badge">${badge}</span>`:''}</button>`;
+const cardHTML=(c,key,i,on,badge,dis)=>`<button class="pick ${on?'on':''}" data-${key}="${i}" style="--c:${c.col}" type="button"${dis?' disabled':''}>${c.look?`<img class="ph" src="${portrait(c)}" alt="">`:`<span class="dot"></span>`}<b>${c.name}</b><small>${c.tag||c.label}</small>${c.R?`<span class="rbars">${RKEYS.map(k=>`<i class="rb"><em>${RABB[k]}</em><u><s style="width:${c.R[k]}%;background:${rCol(c.R[k])}"></s></u><span class="rv">${c.R[k]}</span></i>`).join('')}</span>`:''}${c.tk?`<span class="sw tk">★ ${c.tk.name}: ${c.tk.desc}</span>`:''}${badge?`<span class="badge">${badge}</span>`:''}</button>`;
 /* the dice button: rolls a random player for that side */
 const diceBtn=(key,side)=>`<button class="arr dice${DICE.has(key+'|'+side)?' rolling':''}" data-dice="${key}|${side}" type="button" aria-label="Random player"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="3" y="3" width="14" height="14" rx="3"/><circle cx="7" cy="7" r="1.1" fill="currentColor" stroke="none"/><circle cx="10" cy="10" r="1.1" fill="currentColor" stroke="none"/><circle cx="13" cy="13" r="1.1" fill="currentColor" stroke="none"/></svg></button>`;
 /* one team with arrows to switch it; pair=true lays its players out side by side; dice=true adds the dice to the header */
@@ -2534,7 +2613,30 @@ function pickScreen(){
 /* ---------- tournament: 16 characters, playoff bracket, best of 3 ---------- */
 const isHuman=m=>m.a===flow.ch||m.b===flow.ch;
 const newMatch=(a,b,need=1)=>({a,b,need,wa:0,wb:0,games:[],winner:null,done:false});
-const powerOf=i=>{const c=CH[i];return Math.pow(c.zone+c.deep+c.fin+c.dunk*.5+c.stl*.6+c.blkW*2+c.spd/180,3)};
+const ovrOf=c=>{const R=c.R;if(!R)return 50;const w={three:1,mid:1,fin:1,dunk:.6,spd:.7,stl:.5,str:.5,ft:.4,sec:.5,blk:.6,reb:.6,pdef:1,idef:1};let a=0,b=0;for(const k in w){a+=R[k]*w[k];b+=w[k]}return a/b};
+const powerOf=i=>Math.pow(ovrOf(CH[i])/50,2.5);
+/* seeded random numbers, so a simulated box score never changes once it is made */
+const mulberry=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+/* a CPU game's box score from the two players' ratings and the final score */
+function simBox(ia,ib,pa,pb){
+  const rnd=mulberry(Math.floor(Math.random()*1e9)),A=CH[ia].R,B=CH[ib].R;
+  const off=R=>(.4*R.three+.2*R.mid+.4*R.fin)/99;
+  const mk=(R,Ro,pts)=>{
+    const pct=clamp(.34+.3*off(R)-.06*(Ro.pdef+Ro.idef)/198+(rnd()-.5)*.08,.3,.7);
+    const fgm=Math.max(1,Math.round(pts/2.25+(rnd()-.5)*1.4)),fga=Math.max(fgm,Math.round(fgm/pct));
+    return {fgm,fga};
+  };
+  const a=mk(A,B,pa),b=mk(B,A,pb),missA=a.fga-a.fgm,missB=b.fga-b.fgm;
+  const shA=(A.reb+.3*A.str)/((A.reb+.3*A.str)+(B.reb+.3*B.str));
+  const rb=(share,dMiss,oMiss)=>Math.max(1,Math.round(.72*dMiss*share+.28*oMiss*share*1.6+(rnd()-.5)*2));
+  const bl=(R,Ro)=>Math.max(0,Math.round(.15+1.9*R.blk/99*(.6+.5*(Ro.fin+Ro.dunk)/198)+(rnd()-.5)*1.6));
+  const sl=(R,Ro)=>Math.max(0,Math.round(.25+1.7*R.stl/99*(1.15-Ro.sec/160)+(rnd()-.5)*1.6));
+  a.reb=rb(shA,missB,missA);b.reb=rb(1-shA,missA,missB);
+  a.blk=bl(A,B);b.blk=bl(B,A);a.stl=sl(A,B);b.stl=sl(B,A);
+  a.to=b.stl+Math.max(0,Math.round(.6+(1-A.sec/99)*2.2+rnd()*1.5));
+  b.to=a.stl+Math.max(0,Math.round(.6+(1-B.sec/99)*2.2+rnd()*1.5));
+  return [a,b];
+}
 /* CPU series scores in Hoop Stars points: winners usually 22 to 30, sometimes as low as 17 or up to 40;
    margins range from close (1-4) to okay (5-9) to blowouts (10+) */
 function cpuScore(){
@@ -2551,6 +2653,7 @@ function playSeries(m){
     const pa=powerOf(m.a)/(powerOf(m.a)+powerOf(m.b));
     const aWon=Math.random()<pa,pr=cpuScore(),hi=pr[0],lo=pr[1];
     m.games.push(aWon?[hi,lo]:[lo,hi]);
+    (m.box=m.box||[]).push(simBox(m.a,m.b,aWon?hi:lo,aWon?lo:hi));
     if(aWon)m.wa++;else m.wb++;
   }
   m.done=true;m.winner=m.wa===m.need?m.a:m.b;
@@ -2598,7 +2701,8 @@ function matchHTML(m,isFinal){
   const row=(i,pts)=>{const c=CH[i],won=m.done&&m.winner===i;
     return `<div class="mrow${i===flow.ch?' me':''}${won?' won':''}${m.done&&!won?' out':''}" style="--c:${c.col}"><img class="av" src="${portrait(c)}" alt=""><span class="nm">${lastName(c.name)}</span><b class="sc">${pts===undefined?'':pts}</b></div>`};
   const dots=isFinal?`<div class="fdots">${[0,1,2].map(k=>{const g=m.games[k];return `<i${g?` style="background:${CH[g[0]>g[1]?m.a:m.b].col}"`:''}></i>`}).join('')}</div>`:'';
-  return `<div class="match${isHuman(m)?' mine':''}">${row(m.a,last?last[0]:undefined)}${row(m.b,last?last[1]:undefined)}${dots}</div>`;
+  let ri=-1,mi=-1;flow.tour.rounds.forEach((r,a)=>{const k=r.indexOf(m);if(k>=0){ri=a;mi=k}});
+  return `<div class="match clk${isHuman(m)?' mine':''}" data-m="${ri}|${mi}" role="button" tabindex="0">${row(m.a,last?last[0]:undefined)}${row(m.b,last?last[1]:undefined)}${dots}</div>`;
 }
 function bracketScreen(){
   const T=flow.tour;
@@ -2653,6 +2757,45 @@ function statsHTML(res){
     +row('Points',res.you,res.cpu)+row('FG',`${A.fgm}/${A.fga}`,`${B.fgm}/${B.fga}`)+row('FG%',pct(A),pct(B))
     +row('Rebounds',A.reb,B.reb)+row('Blocks',A.blk,B.blk)+row('Steals',A.stl,B.stl)+row('Turnovers',A.to,B.to)+'</div>';
 }
+/* tournament: click a matchup to see its box score (per game and for the whole series) and both players' ratings */
+function matchModal(m,sel){
+  let ov=document.getElementById('mmodal');
+  if(!ov){ov=document.createElement('div');ov.id='mmodal';document.body.appendChild(ov)}
+  const A=CH[m.a],B=CH[m.b],n=m.box?m.box.length:0;
+  const names=[{t:A.name,col:A.col},{t:B.name,col:B.col}];
+  const sum=ix=>{const t={fgm:0,fga:0,reb:0,blk:0,stl:0,to:0};m.box.forEach(g=>{for(const k in t)t[k]+=g[ix][k]});return t};
+  if(sel===undefined)sel=n?n-1:'R';
+  let body;
+  if(sel==='R'||!n){
+    sel='R';
+    const row=(l,a,c)=>`<div class="sv" style="${a>c?'color:'+A.col:''}">${a}</div><div class="sl">${l}</div><div class="sv" style="${c>a?'color:'+B.col:''}">${c}</div>`;
+    body=`<div class="rpanel"><div class="rhead"><span style="color:${A.col}">${A.name}</span><span style="color:${B.col}">${B.name}</span></div>`
+      +RKEYS.map(k=>`<div class="rcmp"><span class="rv" style="color:${A.col}">${A.R[k]}</span><div class="bar l"><s style="width:${A.R[k]}%;background:${A.col}"></s></div><em>${RLAB[k]}</em><div class="bar"><s style="width:${B.R[k]}%;background:${B.col}"></s></div><span class="rv" style="color:${B.col}">${B.R[k]}</span></div>`).join('')+'</div>';
+  }else if(sel==='S'){
+    body=statsHTML({stats:[sum(0),sum(1)],names,you:m.games.reduce((a,g)=>a+g[0],0),cpu:m.games.reduce((a,g)=>a+g[1],0)});
+  }else{
+    const g=m.games[sel];
+    body=statsHTML({stats:m.box[sel],names,you:g[0],cpu:g[1]});
+  }
+  const tab=(k,l)=>`<button class="btn${sel===k?' primary':''}" data-mt="${k}" type="button">${l}</button>`;
+  const tabs=[...m.box?m.box.map((_,i)=>tab(i,'Game '+(i+1))):[],n>1?tab('S','Series'):'',tab('R','Ratings')].join('');
+  const status=m.done?`${CH[m.winner].name} wins ${Math.max(m.wa,m.wb)}\u2013${Math.min(m.wa,m.wb)}`:n?`Series ${m.wa}\u2013${m.wb}`:'Not played yet';
+  ov.className='mm';
+  ov.innerHTML=`<div class="card mmcard"><p class="eyebrow">${status}</p><h2>${lastName(A.name)} vs ${lastName(B.name)}</h2><div class="row mtabs">${tabs}</div>${body}<div class="row"><button class="btn" data-mclose type="button">Close</button></div></div>`;
+  ov._m=m;
+}
+document.addEventListener('click',e=>{
+  const ov=document.getElementById('mmodal');
+  if(!ov||!ov.className)return;
+  if(e.target===ov||e.target.closest('[data-mclose]')){ov.className='';ov.innerHTML='';return}
+  const t=e.target.closest('[data-mt]');
+  if(t&&ov.contains(t)){const v=t.dataset.mt;matchModal(ov._m,v==='R'||v==='S'?v:+v)}
+});
+scr.addEventListener('click',e=>{
+  const el=e.target.closest('.match[data-m]');if(!el||!flow.tour)return;
+  const [ri,mi]=el.dataset.m.split('|').map(Number),m=flow.tour.rounds[ri]&&flow.tour.rounds[ri][mi];
+  if(m)matchModal(m);
+});
 function endScreen(eyebrow,title,score,buttons,res){
   showScreen(`<div class="card"><p class="eyebrow">${eyebrow}</p><h2>${title}</h2><div class="score">${score}</div>${statsHTML(res)}<div class="row">${buttons}</div></div>`);
 }
@@ -2660,6 +2803,7 @@ function endScreen(eyebrow,title,score,buttons,res){
 function tourGameEnd(T,res){
   const m=T.rounds[T.r].find(isHuman),humanA=m.a===flow.ch;
   m.games.push(humanA?[res.you,res.cpu]:[res.cpu,res.you]);
+  if(res.stats){const [H,O]=res.stats.map(x=>({...x}));(m.box=m.box||[]).push(humanA?[H,O]:[O,H])}
   const aWon=humanA?res.win:!res.win;
   if(aWon)m.wa++;else m.wb++;
   if(m.wa<m.need&&m.wb<m.need)return {m,over:false,won:false};
@@ -2741,7 +2885,18 @@ const KEYS=[
   ['KeyA',1,'l'],['KeyD',1,'r'],['KeyW',1,'jump'],['KeyS',1,'fake'],['KeyB',1,'steal'],['KeyV',1,'sup'],
   ['ShiftLeft',0,'dash'],['ShiftRight',0,'dash'],['Space',0,'jump']
 ];
-const down=new Set(),taps={},pad={l:0,r:0,jump:0};
+const down=new Set(),taps={};
+/* touch pads: pads[0] is P1 (or the only player), pads[1] is P2 in local two-player */
+const pads=[{l:0,r:0,jump:0},{l:0,r:0,jump:0}];
+const pad=pads[0];
+let padEls=null;
+/* the pads show only during a match, and P2's pad only in local two-player */
+function syncPads(){
+  if(!padEls)padEls=[document.getElementById('padset1'),document.getElementById('padset2')];
+  const live=!!st,two=live&&!!st.two&&!net;
+  padEls[0].hidden=!live;padEls[0].classList.toggle('two',two);
+  padEls[1].hidden=!two;padEls[1].classList.toggle('two',two);
+}
 function playerFor(set){if(set===1)return 0;if(set===2)return st.two?1:0;return st.two?-1:0}
 function poll(){
   const humans=net?[0]:(st.two?[0,1]:[0]);
@@ -2752,7 +2907,7 @@ function poll(){
     if(!down.has(code))continue;
     const pl=playerFor(set);if(pl>=0)st.p[pl].inp[act]=1;
   }
-  if(!st.two||net){const n=st.p[0].inp;if(pad.l)n.l=1;if(pad.r)n.r=1;if(pad.jump)n.jump=1}
+  for(const i of humans){const pd=pads[i],n=st.p[i].inp;if(pd.l)n.l=1;if(pd.r)n.r=1;if(pd.jump)n.jump=1}
 }
 function setKeysHint(){
   const el=document.getElementById('keys');if(!el)return;
@@ -2796,20 +2951,26 @@ window.addEventListener('keydown',e=>{
 window.addEventListener('keyup',e=>{
   if(KEYS.some(k=>k[0]===e.code)){down.delete(e.code);if(st)e.preventDefault()}
 });
-window.addEventListener('blur',()=>{down.clear();pad.l=pad.r=pad.jump=0});
-document.querySelectorAll('#pad button').forEach(btn=>{
-  const k=btn.dataset.k;
-  const on=e=>{
-    e.preventDefault();btn.classList.add('on');
-    if(k==='l'||k==='r'||k==='jump')pad[k]=1;
-    else if(st&&!st.two)st.p[0].inp[k]=1;
-    try{btn.setPointerCapture(e.pointerId)}catch(_){}
-  };
-  const off=e=>{e.preventDefault();btn.classList.remove('on');if(k in pad)pad[k]=0};
-  btn.addEventListener('pointerdown',on);
-  btn.addEventListener('pointerup',off);
-  btn.addEventListener('pointercancel',off);
-  btn.addEventListener('lostpointercapture',off);
+window.addEventListener('blur',()=>{down.clear();for(const pd of pads)pd.l=pd.r=pd.jump=0});
+document.querySelectorAll('.pad').forEach(padEl=>{
+  const idx=+padEl.dataset.p,pd=pads[idx];
+  padEl.querySelectorAll('button').forEach(btn=>{
+    const k=btn.dataset.k;
+    const on=e=>{
+      e.preventDefault();btn.classList.add('on');
+      if(k==='l'||k==='r'||k==='jump')pd[k]=1;
+      else if(st){
+        const inp=net&&net.role==='guest'?net.oneshot:(st.p[idx]||{}).inp;
+        if(inp)inp[k]=1;
+      }
+      try{btn.setPointerCapture(e.pointerId)}catch(_){}
+    };
+    const off=e=>{e.preventDefault();btn.classList.remove('on');if(k in pd)pd[k]=0};
+    btn.addEventListener('pointerdown',on);
+    btn.addEventListener('pointerup',off);
+    btn.addEventListener('pointercancel',off);
+    btn.addEventListener('lostpointercapture',off);
+  });
 });
 /* Fullscreen: use the real Fullscreen API on the whole game wrapper; if the page isn't allowed to (embedded frames, iPhone), fill the frame instead. */
 const wrapEl=document.getElementById('wrap'),fsBtn=document.getElementById('fs');
@@ -2842,6 +3003,7 @@ document.getElementById('mute').addEventListener('click',e=>{muted=!muted;e.curr
 /* ---------- loop ---------- */
 let last=0;
 function frame(ts){
+  syncPads();
   const dt=Math.min(.033,(ts-last)/1000||0);last=ts;
   if(net&&net.role==='guest'){if(st){net.held=netHeld();crowdUpdate(dt);netPredict(dt);netInterp()}}else update(dt);
   hoopPhysics(dt);if(!st||!st.paused)updateParts(dt);crowdAudio();draw();
@@ -3112,7 +3274,7 @@ function netHeld(){
     if(set!==net.mySet)continue;
     if((act==='l'||act==='r'||act==='jump')&&down.has(code))h[act]=1;
   }
-  if(pad.l)h.l=1;if(pad.r)h.r=1;if(pad.jump)h.jump=1;
+  if(pads[0].l)h.l=1;if(pads[0].r)h.r=1;if(pads[0].jump)h.jump=1;
   return h;
 }
 function netTick(){
