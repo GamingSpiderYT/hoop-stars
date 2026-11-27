@@ -1102,7 +1102,8 @@ function stepPlayer(p,o,inp,dt,act){
   const airBefore=p.y<FLOOR;
   const pressedJ=!!inp.jump&&!p.jp,releasedJ=!inp.jump&&p.jp;
   p.jp=!!inp.jump;
-  if(inp.dash){inp.dash=0;if(can&&!ftLock&&!airBefore&&p.dashCd<=0)startDash(p,o,inp)}
+  /* after an advanced pump fake you cannot step back: a dash away from the rim is blocked while the fake lock holds */
+  if(inp.dash){inp.dash=0;const bd=(inp.r-inp.l)||p.face;if(can&&!ftLock&&!airBefore&&p.dashCd<=0&&!(p.fakeLock&&bd===-p.ad))startDash(p,o,inp)}
   /* a pump fake needs no move key held: it can be done while slowing down, never on a straight run. It stops the player. */
   if(inp.fake){inp.fake=0;if(can&&!ftLock&&p.has&&!airBefore&&!p.meter&&p.fakeCd<=0&&!p.fakeLock&&!inp.l&&!inp.r)startFake(p)}
   /* the takeover button does nothing in the air */
