@@ -543,11 +543,11 @@ cv.width=W*dpr;cv.height=H*dpr;
 let st=null,flow={mode:'quick',ch:0,ch2:1,opp:1,round:0,slot:0,diff:1,tour:null,pg:{ch:{l:0,r:1},op:{l:2,r:3}}};
 let ac=null,muted=false;
 /* one master gain: every sound and the crowd go through it, so the volume slider scales all of them (0 is mute) */
-let master=null;const buses={},busVol={crowd:1,game:1,sfx:1};
+let master=null;let busNow=null;const buses={},busVol={crowd:1,game:1,sfx:1};
 /* out(kind) returns the bus for a kind of sound: crowd, game (whistles, buzzer, swish) or sfx (everything else). Every bus feeds the master */
 function out(kind){
   if(!master){master=ac.createGain();master.gain.value=vol;master.connect(ac.destination)}
-  const k=kind||'sfx';
+  const k=kind||busNow||'sfx';
   if(!buses[k]){buses[k]=ac.createGain();buses[k].gain.value=busVol[k];buses[k].connect(master)}
   return buses[k];
 }
@@ -623,7 +623,7 @@ function sfxGreen(){
         o.type=type;o.frequency.setValueAtTime(f*mul,t);
         g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(vol,t+.008);
         g.gain.exponentialRampToValueAtTime(.001,t+len+.08);
-        o.connect(g);g.connect(out('game'));o.start(t);o.stop(t+len+.1);
+        o.connect(g);g.connect(out('sfx'));o.start(t);o.stop(t+len+.1);
       }
     }
   }catch(e){}
@@ -646,7 +646,8 @@ function noiseBurst(t,dur,type,f0,f1,Q,vol){
   src.connect(fl);fl.connect(g);g.connect(out());src.start(t);
 }
 /* a rim clank (louder and higher on a hard hit) or a backboard thud, scaled by the impact speed */
-function sfxImpact(kind,speed){
+function sfxImpact(kind,speed){busNow='game';try{return sfxImpactRaw(kind,speed)}finally{busNow=null}}
+function sfxImpactRaw(kind,speed){
   if(muted)return;
   try{
     const t=audioNow(),k=clamp(speed/400,.12,1.4);
@@ -666,7 +667,14 @@ function sfxImpact(kind,speed){
   }catch(e){}
 }
 /* a clean swish through the net, louder with a faster drop */
-function sfxSwish(speed){
+/* a basketball hitting the floor: a short low thump with a bit of wood noise. v is the strength of the bounce (0 to 1) */
+function sfxDribble(v){
+  busNow='game';
+  try{const t=audioNow(),k=clamp(v,.15,1);pitchTone(t,170,80,.1,'sine',.22*k);noiseBurst(t,.02,'bandpass',900,600,1.2,.12*k)}catch(e){}
+  finally{busNow=null}
+}
+function sfxSwish(speed){busNow='game';try{return sfxSwishRaw(speed)}finally{busNow=null}}
+function sfxSwishRaw(speed){
   if(muted)return;
   try{
     const t=audioNow(),k=clamp(speed/500,.2,1.2);
@@ -675,7 +683,8 @@ function sfxSwish(speed){
   }catch(e){}
 }
 /* a sharp block: a hard thud with a crack on top */
-function sfxBlock(){
+function sfxBlock(){busNow='game';try{return sfxBlockRaw()}finally{busNow=null}}
+function sfxBlockRaw(){
   if(muted)return;
   try{
     const t=audioNow();
@@ -1696,6 +1705,10 @@ function updateBall(dt,live){
     else{
       /* a dribble at a natural pace (about two bounces a second), with the ball rising a little less high */
       const bounce=p.y>=FLOOR?Math.abs(Math.sin(b.t*6+p.idx))*22:0,sc=p.ch.sc||1;
+      /* the ball touches the floor each time the bounce reaches its lowest point (sign change of the bounce wave) */
+      const sg=Math.sign(Math.sin(b.t*6+p.idx));
+      if(p.y>=FLOOR&&p.dribSg!==undefined&&sg!==p.dribSg&&!p.dash&&!p.meter)sfxDribble(.6);
+      p.dribSg=sg;
       tx=p.x+p.face*18*sc;ty=p.y-(16+bounce)*sc;
     }
     /* a free throw: the shooter pound-dribbles the ball on the floor twice before the shot */
@@ -1711,6 +1724,7 @@ function updateBall(dt,live){
   if(b.shot&&b.shot.pts===3&&b.state==='air'&&!b.shot.scored)emit({x:b.x,y:b.y,vx:0,vy:0,life:.32,size:R*.75,col:WHITEP,a0:.4,shrink:true,add:true});
   if(b.y>FLOOR-R){
     b.y=FLOOR-R;
+    if(b.vy>40)sfxDribble(clamp(b.vy/400,.15,1));
     if(b.vy>140){b.vy=-b.vy*.6;sfx('bounce')}else b.vy=0;
     b.vx*=.92;
     if(b.state==='air')b.state='loose';
@@ -2650,6 +2664,8 @@ let foulsOn=true;
 let advFake=true;
 /* performance mode (off by default): no bloom, still nets and rims, a plain crowd, and no particles */
 let perf=false;
+/* where the settings screen returns to: the home menu, or the pause menu */
+let settingsFrom='home';
 function homeScreen(){
   if(net)netClose();
   st=null;setKeysHint();
@@ -2667,7 +2683,7 @@ function settingsScreen(){
   <button class="btn" data-act="perf" type="button">Performance mode: ${perf?'On':'Off'}</button>
   <button class="btn" data-act="advfake" type="button">Advanced pump fake: ${advFake?'On':'Off'}</button>
   <button class="btn" data-act="fouls" type="button">Fouls: ${foulsOn?'On':'Off'}</button>
-  <button class="btn" data-act="home" type="button">Back</button></div>`);
+  <button class="btn" data-act="${settingsFrom==='pause'?'pauseback':'home'}" type="button">Back</button></div>`);
 }
 function singleScreen(){
   showScreen(`<div class="card menu"><p class="eyebrow">Single player</p><h2>Choose a mode</h2>
@@ -2908,7 +2924,8 @@ function statsHTML(res){
 /* tournament: click a matchup to see its box score (per game and for the whole series) and both players' ratings */
 function matchModal(m,sel){
   let ov=document.getElementById('mmodal');
-  if(!ov){ov=document.createElement('div');ov.id='mmodal';document.body.appendChild(ov)}
+  if(!ov){ov=document.createElement('div');ov.id='mmodal'}
+  mountMM(ov);
   const A=CH[m.a],B=CH[m.b],n=m.box?m.box.length:0;
   const names=[{t:A.name,col:A.col},{t:B.name,col:B.col}];
   const sum=ix=>{const t={fgm:0,fga:0,reb:0,blk:0,stl:0,to:0};m.box.forEach(g=>{for(const k in t)t[k]+=g[ix][k]});return t};
@@ -3021,7 +3038,9 @@ scr.addEventListener('click',e=>{
   else if(act==='advfake'){advFake=!advFake;settingsScreen()}
   else if(act==='perf'){perf=!perf;settingsScreen()}
   else if(act==='fouls'){foulsOn=!foulsOn;settingsScreen()}
-  else if(act==='settings')settingsScreen()
+  else if(act==='settings'){settingsFrom='home';settingsScreen()}
+  else if(act==='pausesettings'){settingsFrom='pause';settingsScreen()}
+  else if(act==='pauseback')pauseScreen()
   else if(act==='go'){if(flow.mode==='tour'){newTournament();bracketScreen()}else launchMatch()}
   else if(act==='bracket')bracketScreen();
   else if(act==='resume')resumeGame();
@@ -3079,7 +3098,7 @@ function hideBinds(){const el=document.getElementById('binds');if(el)el.classLis
 function togglePause(){if(net){netLeaveMatch();return}if(st&&st.phase!=='over'){if(st.paused)resumeGame();else{st.paused=true;pauseScreen()}}}
 function resumeGame(){if(!st)return;st.paused=false;hideScreen();document.getElementById('pause').hidden=false}
 function pauseScreen(){
-  showScreen(`<div class="card menu"><p class="eyebrow">Paused</p><h2>Paused</h2><button class="btn primary" data-act="resume" type="button">Resume</button><button class="btn" data-act="quit" type="button">Quit match</button></div>`);
+  showScreen(`<div class="card menu"><p class="eyebrow">Paused</p><h2>Paused</h2><button class="btn primary" data-act="resume" type="button">Resume</button><button class="btn" data-act="pausesettings" type="button">Settings</button><button class="btn" data-act="quit" type="button">Quit match</button></div>`);
 }
 window.addEventListener('keydown',e=>{
   if(e.code==='KeyP'&&!e.repeat){if(!net)togglePause();return}
@@ -3126,9 +3145,15 @@ document.querySelectorAll('.pad').forEach(padEl=>{
 /* Fullscreen: use the real Fullscreen API on the whole game wrapper; if the page isn't allowed to (embedded frames, iPhone), fill the frame instead. */
 const wrapEl=document.getElementById('wrap'),fsBtn=document.getElementById('fs');
 function fsOn(){return !!(document.fullscreenElement||document.webkitFullscreenElement)||wrapEl.classList.contains('pfs')}
+/* native fullscreen only shows the fullscreen element's subtree, so overlays must live inside it */
+function mountMM(ov){
+  const host=fsOn()?wrapEl:document.body;
+  if(ov&&ov.parentNode!==host)host.appendChild(ov);
+}
 function fsSync(){
   const native=!!(document.fullscreenElement||document.webkitFullscreenElement);
   wrapEl.classList.toggle('fs',native||wrapEl.classList.contains('pfs'));
+  mountMM(document.getElementById('mmodal'));
   fsBtn.innerHTML=fsOn()?FS_EXIT:FS_ENTER;fsBtn.setAttribute('aria-label',fsOn()?'Exit fullscreen':'Fullscreen');
 }
 function toggleFS(){
